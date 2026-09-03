@@ -74,5 +74,5 @@ server and built bundle, all green), and drove the `Nested` story's pinned shelf
 | C5 | Process: the tree changed under the reviewer (disposition and two files appeared or changed mid-review). | **Accepted, corrected going forward.** The code is committed before the record is written; the commit reviewed is named below. Reviewer C's citations were re-checked by the session against the final tree when applying C1–C4. |
 
 **Gate cost:** three opus reviewers (A correctness, B gaps, C diff re-review), headless with fresh
-context. Reviewed commit for C's citations: working tree after `48423fe`; the fix wave lands as the
-commit recorded at the end of this file.
+context. Reviewed commit for C's citations: working tree after `48423fe`; the fix wave (with C1–C4 applied) is commit `29233a2`;
+every citation above was re-checked against that tree.
