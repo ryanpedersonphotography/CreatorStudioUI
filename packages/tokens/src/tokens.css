@@ -1,0 +1,112 @@
+/*
+ * Design tokens — the only file in the repo allowed to hold a raw value.
+ *
+ *   --cs-p-*   primitives: the palette and scales. Referenced ONLY here.
+ *   --cs-*     semantics: what components use. Light by default, dark below.
+ *   @theme     the bridge into Tailwind utilities (bg-surface, text-ink, …).
+ *
+ * `pnpm lint:tokens` enforces all three.
+ */
+
+:root {
+  /* primitives */
+  --cs-p-white: oklch(99% 0.004 95);
+  --cs-p-paper: oklch(97% 0.006 95);
+  --cs-p-linen: oklch(93% 0.008 95);
+  --cs-p-ash: oklch(62% 0.012 95);
+  --cs-p-ink: oklch(24% 0.014 95);
+  --cs-p-night: oklch(17% 0.012 260);
+  --cs-p-slate: oklch(23% 0.014 260);
+  --cs-p-steel: oklch(33% 0.014 260);
+  --cs-p-fog: oklch(70% 0.012 260);
+  --cs-p-chalk: oklch(94% 0.006 260);
+  --cs-p-ember: oklch(64% 0.17 45);
+  --cs-p-ember-bright: oklch(72% 0.16 50);
+
+  --cs-p-space-1: 0.25rem;
+  --cs-p-space-2: 0.5rem;
+  --cs-p-space-3: 0.75rem;
+  --cs-p-space-4: 1rem;
+  --cs-p-space-6: 1.5rem;
+  --cs-p-radius-1: 0.25rem;
+  --cs-p-radius-2: 0.5rem;
+  --cs-p-line: 1px;
+  --cs-p-rail: 0.375rem;
+  --cs-p-motion: 120ms;
+
+  /* semantics — light */
+  --cs-bg: var(--cs-p-paper);
+  --cs-surface: var(--cs-p-white);
+  --cs-surface-muted: var(--cs-p-linen);
+  --cs-ink: var(--cs-p-ink);
+  --cs-ink-muted: var(--cs-p-ash);
+  --cs-border: var(--cs-p-linen);
+  --cs-accent: var(--cs-p-ember);
+  --cs-focus: var(--cs-p-ember);
+
+  --cs-space-xs: var(--cs-p-space-1);
+  --cs-space-sm: var(--cs-p-space-2);
+  --cs-space-md: var(--cs-p-space-4);
+  --cs-space-lg: var(--cs-p-space-6);
+  --cs-radius-sm: var(--cs-p-radius-1);
+  --cs-radius-md: var(--cs-p-radius-2);
+  --cs-line: var(--cs-p-line);
+  --cs-separator-hit: var(--cs-p-rail);
+  --cs-motion-fast: var(--cs-p-motion);
+
+  --cs-font-ui: ui-sans-serif, system-ui, sans-serif;
+  --cs-font-prose: ui-serif, Georgia, serif;
+  --cs-font-mono: ui-monospace, Menlo, monospace;
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --cs-bg: var(--cs-p-night);
+  --cs-surface: var(--cs-p-slate);
+  --cs-surface-muted: var(--cs-p-steel);
+  --cs-ink: var(--cs-p-chalk);
+  --cs-ink-muted: var(--cs-p-fog);
+  --cs-border: var(--cs-p-steel);
+  --cs-accent: var(--cs-p-ember-bright);
+  --cs-focus: var(--cs-p-ember-bright);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --cs-bg: var(--cs-p-night);
+    --cs-surface: var(--cs-p-slate);
+    --cs-surface-muted: var(--cs-p-steel);
+    --cs-ink: var(--cs-p-chalk);
+    --cs-ink-muted: var(--cs-p-fog);
+    --cs-border: var(--cs-p-steel);
+    --cs-accent: var(--cs-p-ember-bright);
+    --cs-focus: var(--cs-p-ember-bright);
+    color-scheme: dark;
+  }
+}
+
+/* Tailwind bridge. `inline` keeps utilities pointing at the semantic vars, so a
+   theme flip re-colours every utility without a rebuild. */
+@theme inline {
+  --color-bg: var(--cs-bg);
+  --color-surface: var(--cs-surface);
+  --color-surface-muted: var(--cs-surface-muted);
+  --color-ink: var(--cs-ink);
+  --color-ink-muted: var(--cs-ink-muted);
+  --color-border: var(--cs-border);
+  --color-accent: var(--cs-accent);
+  --color-focus: var(--cs-focus);
+  --spacing-xs: var(--cs-space-xs);
+  --spacing-sm: var(--cs-space-sm);
+  --spacing-md: var(--cs-space-md);
+  --spacing-lg: var(--cs-space-lg);
+  --spacing-line: var(--cs-line);
+  --spacing-separator: var(--cs-separator-hit);
+  --radius-sm: var(--cs-radius-sm);
+  --radius-md: var(--cs-radius-md);
+  --font-ui: var(--cs-font-ui);
+  --font-prose: var(--cs-font-prose);
+  --font-mono: var(--cs-font-mono);
+}

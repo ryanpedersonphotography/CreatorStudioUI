@@ -33,13 +33,13 @@ its own: the UI is the product and backends plug in behind ports (see *How it's 
 
 ## Stage
 
-**Planning.** Git initialised; governance files only; no code.
+**Skeleton stands (2026-09-02).** `apps/studio` boots on port 5180; `packages/shell` renders an
+empty three-region cockpit whose layout persists through the `contracts` port and the
+`adapters/local` adapter (proven by `node tools/verify/persistence.mjs` against the dev server);
+`packages/tokens` holds the design tokens; `pnpm verify` is green from the root.
 
-**Next milestone — the skeleton stands:** `apps/studio` boots on port 5180, `packages/shell`
-renders an empty cockpit with resizable panels whose layout persists through a `contracts` port and
-the `adapters/local` adapter, `packages/tokens` holds the design tokens, and `pnpm verify` is green
-from the root. Two-reviewer gate (global rules) before anything
-writer-facing is built.
+**Next milestone — Write + Arrange:** the manuscript editor surface inside the cockpit, with the
+first real panel controls (collapse, pin). Nothing writer-facing lands without the two-reviewer gate.
 
 ## How it's built
 
@@ -60,18 +60,21 @@ undecided. Challenge any of them.
   (5173 and its fallback 5190 belong to the reference app). Browser first; Electron is a later door.
 - **Shell** — react-resizable-panels v4. Import the library's panel as
   `import { Panel as ResizablePanel } from "react-resizable-panels"` so our own `Panel` compound stays
-  free. Layout state is serialised by the library into `localStorage` under `cs:layout:<projectId>`,
-  independent of manuscript storage. Persistence ships with the skeleton.
+  free. Layout state is serialised by the library and written through the `LayoutStore` port under
+  `cs:layout:<projectId>:<group>`; the shell strips the library's own key prefix so the store never
+  learns which library is underneath.
 - **Editor** — ProseMirror via `@handlewithcare/react-prosemirror`. Not in the skeleton.
 - **Primitives** — Ark UI by default; Radix only where Ark has no equivalent, with a one-line
   comment beside the import saying why.
-- **Styling** — every design value lives in `packages/tokens/src/tokens.css` as Tailwind v4 `@theme`
-  custom properties. `pnpm lint:tokens` (ported from the reference app's `scripts/check-tokens.mjs`)
-  fails on any raw colour, spacing, radius, or type value anywhere else.
+- **Styling** — every design value lives in `packages/tokens`: CSS in `src/tokens.css` (`--cs-p-*`
+  primitives, `--cs-*` semantics, an `@theme inline` bridge into Tailwind utilities) and typed lengths
+  such as `cockpitSizes` in `src/lib/sizes.ts`. `pnpm lint:tokens` (ported from the reference app)
+  fails on any raw colour or length anywhere else. Panel sizes always carry a unit.
 - **State** — local first. When components in one feature share state: a React context + reducer
   colocated with the feature, exported from its `index.ts`. No global store.
-- **Stories and tests** — Ladle, one root config across packages; Vitest + Testing Library for units;
-  Playwright against the running app.
+- **Stories and tests** — Ladle from `.ladle/` at the root across all packages; Vitest + Testing
+  Library for units, with the shared `tools/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
+  Playwright scripts under `tools/verify/` against the running app.
 
 ## Conventions
 
@@ -81,8 +84,11 @@ that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
 `typecheck · lint · lint:tokens · test · stories:build · build`. Boundaries: packages import each
-other only through `index.ts`, and never import apps. No raw values outside the token file. TS strict,
-no `any`. Every export from a package's `index.ts` has a story and a test.
+other only through `index.ts`, and never import apps (the matrix lives in the root
+`eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
+token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
+also has a story.
+After adding or removing a project, run `pnpm nx sync` so TS project references follow.
 
 **Reviewed — judgment; cite the line when you flag it.** Composition over configuration: children and
 slots, compound components (`Card`, `Card.Header`, `Card.Body`), not boolean-prop piles. Headless
@@ -123,8 +129,11 @@ is the authority; the essentials:
 
 ## Where things live
 
-`AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `references/friction-notes.md` (footguns that
-must survive sessions) · `references/reviews/` (review-gate records) · registry entry
+`AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `apps/studio` (composition root: the one place an
+adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapters/local` ·
+`scripts/check-tokens.mjs` · `tools/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
+`references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
+(review-gate records) · registry entry
 `~/.claude/scripts/proj/bin/proj get creator-studio-ui` · transcripts
 `~/.claude/projects/-Users-ryanpederson-NewDev-CreatorStudioUI/` · reference app
 `/Users/ryanpederson/Downloads/finalproject/lost-lantern-studio` (read `docs/footguns.md` and

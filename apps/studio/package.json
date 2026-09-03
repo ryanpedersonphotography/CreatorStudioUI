@@ -1,0 +1,17 @@
+{
+  "name": "@creator-studio/studio",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "name": "studio",
+    "tags": [
+      "type:app",
+      "scope:studio"
+    ]
+  },
+  "dependencies": {
+    "@creator-studio/shell": "workspace:*",
+    "@creator-studio/adapter-local": "workspace:*",
+    "@creator-studio/tokens": "workspace:*"
+  }
+}

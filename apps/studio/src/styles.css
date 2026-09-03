@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+@import '@creator-studio/tokens/tokens.css';
+/* Vite's root is this app, so tell Tailwind to scan the packages it composes. */
+@source '../../../packages';
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--cs-bg);
+  color: var(--cs-ink);
+  font-family: var(--cs-font-ui);
+}

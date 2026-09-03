@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/studio"
+    },
+    {
+      "path": "./packages/shell"
+    },
+    {
+      "path": "./packages/contracts"
+    },
+    {
+      "path": "./packages/adapters/local"
+    },
+    {
+      "path": "./packages/tokens"
+    }
+  ],
+  "compilerOptions": {}
+}
