@@ -28,24 +28,31 @@ and sibling projects — Lost Lantern, story-engine, Creator-World.*
 ## Non-goals
 
 *Assumed, not stated by Ryan — one sentence reverses any of these.* Not collaborative, not a
-publishing platform, not AI-writes-for-you, not a Scrivener / Notion / Obsidian clone, no backend or
-accounts for now.
+publishing platform, not AI-writes-for-you, not a Scrivener / Notion / Obsidian clone. No backend of
+its own: the UI is the product and backends plug in behind ports (see *How it's built*).
 
 ## Stage
 
 **Planning.** Git initialised; governance files only; no code.
 
 **Next milestone — the skeleton stands:** `apps/studio` boots on port 5180, `packages/shell`
-renders an empty cockpit with resizable panels that persist, `packages/tokens` holds the design
-tokens, and `pnpm verify` is green from the root. Two-reviewer gate (global rules) before anything
+renders an empty cockpit with resizable panels whose layout persists through a `contracts` port and
+the `adapters/local` adapter, `packages/tokens` holds the design tokens, and `pnpm verify` is green
+from the root. Two-reviewer gate (global rules) before anything
 writer-facing is built.
 
 ## How it's built
 
-Defaults chosen from Ryan's established stack. Challenge any of them.
+The front end is the product; stack choices below are provisional and the backend is deliberately
+undecided. Challenge any of them.
 
+- **Backend-agnostic by construction.** UI packages never import a backend SDK. Data flows through
+  typed ports in `packages/contracts`; adapters in `packages/adapters/*` implement them; only
+  `apps/studio` wires an adapter to a port. The skeleton ships `adapters/local` (in-memory +
+  localStorage). Boundary tags enforce it: `type:ui` and `type:feature` may not depend on `type:adapter`.
 - **Monorepo** — this directory is the root (open question 3). pnpm workspaces + Nx with inferred
-  targets; package boundaries enforced by `@nx/enforce-module-boundaries` tags (`type:app`, `type:pkg`).
+  targets; package boundaries enforced by `@nx/enforce-module-boundaries` with type tags
+  (`type:app` · `type:feature` · `type:ui` · `type:contract` · `type:adapter` · `type:util`).
   Node 22 LTS, pnpm 11 — pinned via `packageManager` and `engines` in the root `package.json`.
 - **Names** — scope `@creator-studio/*`; directory name = package name (`packages/shell` →
   `@creator-studio/shell`). The app is `apps/studio`.
@@ -131,8 +138,8 @@ caught.
 
 Bold is the default that gets built if unanswered.
 
-1. **Manuscript storage** — **plain files in a project folder** (Markdown / JSON, git-friendly, the
-   writer owns them) versus a local database (faster queries, opaque files).
+1. **First real backend adapter** — undecided on purpose; `adapters/local` carries the MVP. Candidates
+   when the time comes: plain files in a project folder, a local database, a remote service.
 2. **Surface order** — **Write + Arrange**, then structure, then cast and world.
 3. **Is this directory the monorepo root**, or one package inside a wider Creator Studio monorepo
    later? **Default: root.**
