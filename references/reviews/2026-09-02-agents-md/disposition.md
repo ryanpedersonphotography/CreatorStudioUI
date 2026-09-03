@@ -28,5 +28,21 @@ Two independent opus reviewers, headless `claude -p`, read-only tool allowlists,
 | B18 — global rules enumerated in three places | Fixed: CLAUDE.md and AGENTS.md each point once. |
 | B21 — reference app filed under Process | Fixed: moved under Conventions as its own paragraph. |
 
-Re-review of the rewrite: one opus pass against this table (diff rung of the budget ladder), recorded
-as `re-review.md` when it lands.
+## Re-review round (one opus pass against this table — `re-review.md`)
+
+| Finding | Disposition |
+|---|---|
+| R1 — Conventions section unlabelled; A11 unaddressed | Fixed: reviewer's sentence inserted verbatim under *Conventions*. |
+| R2 — bare `herdr` prohibition missing | Fixed: reviewer's wording added as the first Herdr bullet. |
+| R3 — pnpm 10 vs live pnpm 11 | Fixed: pnpm 11, pinned via `packageManager` + `engines`. |
+| R4 — STATUS/ROADMAP removal unrecorded | Fixed: note under *Where things live*. |
+| R5 — `docs/mental-model.md` pointer lost; B21 section placement | Fixed: pointer restored under *Where things live*; the reference paragraph stays under *Conventions*, which is where a builder reads rules. |
+| R6 — no home for a third background process | Fixed: new tab. |
+| R7 — `pane read` diagnosis dropped | Fixed: restored on timeout. |
+| R8 — README referenced by no rule | Fixed: comment beside the import instead. |
+| R9 — friction note asserted a Vite config that does not exist | Fixed: modality corrected. |
+| A10 reasoning | Corrected: the North star is vision prose; the claim that every section is labelled was false and is withdrawn. Conventions now carries its own label. |
+| B14 | Reclassified as fixed, per the re-reviewer. |
+| B15 | Accepted risk stands; the skeleton renders panels only, no collapse / swap / pin, and *Stage* says "empty cockpit". |
+
+Fixes in this round are the re-reviewer's own proposed wording applied verbatim; no further pass.

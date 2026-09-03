@@ -46,7 +46,7 @@ Defaults chosen from Ryan's established stack. Challenge any of them.
 
 - **Monorepo** — this directory is the root (open question 3). pnpm workspaces + Nx with inferred
   targets; package boundaries enforced by `@nx/enforce-module-boundaries` tags (`type:app`, `type:pkg`).
-  Node 22 LTS, pnpm 10.
+  Node 22 LTS, pnpm 11 — pinned via `packageManager` and `engines` in the root `package.json`.
 - **Names** — scope `@creator-studio/*`; directory name = package name (`packages/shell` →
   `@creator-studio/shell`). The app is `apps/studio`.
 - **App** — React 19 + TypeScript strict + Vite + Tailwind v4. Vite pins `port: 5180, strictPort: true`
@@ -56,8 +56,8 @@ Defaults chosen from Ryan's established stack. Challenge any of them.
   free. Layout state is serialised by the library into `localStorage` under `cs:layout:<projectId>`,
   independent of manuscript storage. Persistence ships with the skeleton.
 - **Editor** — ProseMirror via `@handlewithcare/react-prosemirror`. Not in the skeleton.
-- **Primitives** — Ark UI by default; Radix only where Ark has no equivalent, noted in that
-  component's README.
+- **Primitives** — Ark UI by default; Radix only where Ark has no equivalent, with a one-line
+  comment beside the import saying why.
 - **Styling** — every design value lives in `packages/tokens/src/tokens.css` as Tailwind v4 `@theme`
   custom properties. `pnpm lint:tokens` (ported from the reference app's `scripts/check-tokens.mjs`)
   fails on any raw colour, spacing, radius, or type value anywhere else.
@@ -67,6 +67,10 @@ Defaults chosen from Ryan's established stack. Challenge any of them.
   Playwright against the running app.
 
 ## Conventions
+
+This section is this file's reading of "clean coded / reusable / compositional", several rules
+ported from the reference app. The gate list assumes the tooling under *How it's built* and shrinks if
+that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
 `typecheck · lint · lint:tokens · test · stories:build · build`. Boundaries: packages import each
@@ -93,14 +97,19 @@ recognises the agents running in them. This project's workspace is labelled `Cre
 (id `wC` today — always read IDs from `herdr` JSON). The skill at `~/.claude/skills/herdr/SKILL.md`
 is the authority; the essentials:
 
+- Never run bare `herdr` — it launches or attaches the TUI. Print a group's help by running the group
+  alone (`herdr pane`, `herdr agent`); never probe a mutating subcommand by omitting its arguments,
+  because several execute with defaults.
 - Guard first: `test "${HERDR_ENV:-}" = 1`. If it fails you are outside Herdr — say so and stop.
 - Long-running processes (dev server, test watcher, Ladle) get their own pane. Check geometry with
   `herdr pane layout --pane "$HERDR_PANE_ID"`; split a wide pane `right`, a tall one `down`, never the
   same direction twice: `herdr pane split --current --direction <dir> --cwd "$PWD" --no-focus`, then
-  read the id from `.result.pane.pane_id`.
+  read the id from `.result.pane.pane_id`. A third background process goes in a new tab
+  (`herdr tab create --cwd "$PWD" --no-focus`), not a third column.
 - Start and confirm: `herdr pane run <id> "pnpm dev"` →
   `herdr pane wait-output <id> --match "Local:" --timeout 60000` →
-  `curl -s -o /dev/null -w "%{http_code}" http://localhost:5180`.
+  `curl -s -o /dev/null -w "%{http_code}" http://localhost:5180`. On timeout, read the pane before
+  assuming failure: `herdr pane read <id> --source recent-unwrapped --lines 120`.
 - Only type into panes you created. Check `herdr pane list --workspace "$HERDR_WORKSPACE_ID"` and
   `herdr agent list` before targeting anything else. Never close what you did not create; never run
   `herdr server stop`. Other workspaces (story-engine, Creator-World) are other projects.
@@ -110,7 +119,13 @@ is the authority; the essentials:
 `AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `references/friction-notes.md` (footguns that
 must survive sessions) · `references/reviews/` (review-gate records) · registry entry
 `~/.claude/scripts/proj/bin/proj get creator-studio-ui` · transcripts
-`~/.claude/projects/-Users-ryanpederson-NewDev-CreatorStudioUI/`.
+`~/.claude/projects/-Users-ryanpederson-NewDev-CreatorStudioUI/` · reference app
+`/Users/ryanpederson/Downloads/finalproject/lost-lantern-studio` (read `docs/footguns.md` and
+`docs/mental-model.md` before shell or token code).
+
+No `STATUS.md` or `ROADMAP.md` here on purpose: *Stage* is the current state and *Open questions*
+holds the unsettled order. Do not create them — duplicated ground truth is what the 2026-09-02 review
+caught.
 
 ## Open questions
 
