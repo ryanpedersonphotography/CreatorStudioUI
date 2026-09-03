@@ -13,7 +13,12 @@
     ],
     "jsx": "react-jsx",
     "module": "esnext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ]
   },
   "include": [
     "vite.config.ts",

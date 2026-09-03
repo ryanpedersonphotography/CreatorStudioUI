@@ -1,29 +1,41 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import {
   Group,
   Panel as ResizablePanel,
   Separator as ResizableSeparator,
   useDefaultLayout,
   type LayoutStorage,
+  type PanelProps,
 } from 'react-resizable-panels';
 import { layoutKey, type LayoutStore } from '@creator-studio/contracts';
-import type { PanelLength } from '@creator-studio/tokens';
+import { cockpitSizes, type PanelLength } from '@creator-studio/tokens';
+import { CockpitRegions } from './cockpit-regions.js';
 
 /*
- * The cockpit is one horizontal Group whose panels are whatever the caller
- * composes as children. The shell knows nothing about manuscripts or casts —
- * it knows how to arrange regions and remember the arrangement.
+ * The cockpit is one Group along one axis whose panels are whatever the caller
+ * composes as children. Nest a cockpit inside a panel to get the other axis:
  *
- *   <Cockpit projectId="demo" store={store}>
- *     <Cockpit.Panel id="nav" defaultSize="20%" minSize="160px">…</Cockpit.Panel>
- *     <Cockpit.Separator />
- *     <Cockpit.Panel id="main">…</Cockpit.Panel>
+ *   <Cockpit projectId="demo" store={store} orientation="vertical">
+ *     <Cockpit.Panel id="top" {...pinnedPanel(cockpitSizes.topHeight)}>…</Cockpit.Panel>
+ *     <Cockpit.Panel id="body">
+ *       <Cockpit projectId="demo" store={store} group="body">
+ *         <Cockpit.Panel id="nav" defaultSize="20%" minSize="160px">…</Cockpit.Panel>
+ *         <Cockpit.Separator aria-label="Resize navigation" />
+ *         <Cockpit.Panel id="main">…</Cockpit.Panel>
+ *       </Cockpit>
+ *     </Cockpit.Panel>
  *   </Cockpit>
  *
+ * Every nested cockpit names its own `group`, so each remembers its own layout.
+ * Panel ids land in the DOM: keep them unique across the page, not just the group.
  * Sizes always carry a unit: a bare number is pixels in react-resizable-panels v4.
+ * The shell knows nothing about manuscripts or casts; it arranges regions and
+ * remembers the arrangement.
  */
 
 export type { PanelLength };
+
+export type CockpitOrientation = 'horizontal' | 'vertical';
 
 export interface CockpitProps {
   /** Namespaces the remembered layout; one project, one layout. */
@@ -32,6 +44,14 @@ export interface CockpitProps {
   store: LayoutStore;
   /** Name of this panel group inside the project. Nested groups need their own. */
   group?: string;
+  /** Which way the panels run. Defaults to side by side. */
+  orientation?: CockpitOrientation;
+  /**
+   * When some panels render conditionally, list the ids of the ones mounted
+   * right now, derived from the same state as the JSX. Each set is remembered
+   * under its own key: `cs:layout:<projectId>:<group>:<id>:<id>…`.
+   */
+  panelIds?: string[];
   children: ReactNode;
   className?: string;
 }
@@ -52,14 +72,22 @@ function asLayoutStorage(store: LayoutStore): LayoutStorage {
   };
 }
 
-export function Cockpit({ projectId, store, group = 'root', children, className }: CockpitProps) {
+export function Cockpit({
+  projectId,
+  store,
+  group = 'root',
+  orientation = 'horizontal',
+  panelIds,
+  children,
+  className,
+}: CockpitProps) {
   const id = layoutKey(projectId, group);
-  const layout = useDefaultLayout({ id, storage: asLayoutStorage(store) });
+  const layout = useDefaultLayout({ id, storage: asLayoutStorage(store), panelIds });
   return (
     <Group
       {...layout}
       id={domId(id)}
-      orientation="horizontal"
+      orientation={orientation}
       className={joinClasses('flex h-full w-full bg-bg text-ink font-ui', className)}
     >
       {children}
@@ -67,45 +95,121 @@ export function Cockpit({ projectId, store, group = 'root', children, className 
   );
 }
 
-export interface CockpitPanelProps {
-  /** Stable, unique within the cockpit. Required: the library needs it to restore a layout. */
+/** What a toggle attaches to the panel it controls. Spread it; never build it by hand. */
+export type CockpitPanelBinding = Pick<PanelProps, 'panelRef' | 'onResize'>;
+
+export interface CockpitPanelProps extends CockpitPanelBinding {
+  /** Stable, unique on the page. Required: the library needs it to restore a layout. */
   id: string;
   defaultSize?: PanelLength;
   minSize?: PanelLength;
   maxSize?: PanelLength;
+  /** Lets a drag or a toggle shrink the panel to `collapsedSize`. Children stay mounted. */
+  collapsible?: boolean;
+  /** Where a collapsible panel stops; defaults to nothing visible. */
+  collapsedSize?: PanelLength;
+  /** The user cannot drag this panel's edges. A toggle can still hide it. */
+  disabled?: boolean;
+  /**
+   * `preserve-pixel-size` holds chrome at its width when the window resizes.
+   * Every cockpit needs at least one panel on the default `preserve-relative-size`.
+   */
+  groupResizeBehavior?: 'preserve-relative-size' | 'preserve-pixel-size';
   children?: ReactNode;
   className?: string;
 }
 
-function CockpitPanel({ id, defaultSize, minSize, maxSize, children, className }: CockpitPanelProps) {
+function CockpitPanel({
+  id,
+  defaultSize,
+  minSize,
+  maxSize,
+  collapsible,
+  collapsedSize,
+  disabled,
+  groupResizeBehavior,
+  panelRef,
+  onResize,
+  children,
+  className,
+}: CockpitPanelProps) {
   return (
     <ResizablePanel
       id={id}
       defaultSize={defaultSize}
       minSize={minSize}
       maxSize={maxSize}
-      className={joinClasses('flex min-w-0 flex-col overflow-hidden bg-surface', className)}
+      collapsible={collapsible}
+      collapsedSize={collapsedSize}
+      disabled={disabled}
+      groupResizeBehavior={groupResizeBehavior}
+      panelRef={panelRef}
+      onResize={onResize}
+      className={joinClasses('flex min-h-0 min-w-0 flex-col overflow-hidden bg-surface', className)}
     >
       {children}
     </ResizablePanel>
   );
 }
 
-function CockpitSeparator({ className }: { className?: string }) {
-  return (
-    <ResizableSeparator
-      className={joinClasses(
-        'w-separator shrink-0 cursor-col-resize bg-border transition-colors duration-(--cs-motion-fast) hover:bg-accent data-[resize-handle-active]:bg-accent',
-        className,
-      )}
-    />
-  );
+/**
+ * The props that make a region fixed in size, inert to dragging, and still
+ * hideable through a toggle. A disabled panel is skipped by the drag hit-test
+ * but still answers the imperative API; `collapsible` is what lets it hide.
+ */
+export function pinnedPanel(
+  size: PanelLength,
+): Required<
+  Pick<
+    CockpitPanelProps,
+    'defaultSize' | 'minSize' | 'maxSize' | 'disabled' | 'collapsible' | 'collapsedSize' | 'groupResizeBehavior'
+  >
+> {
+  return {
+    defaultSize: size,
+    minSize: size,
+    maxSize: size,
+    disabled: true,
+    collapsible: true,
+    collapsedSize: cockpitSizes.collapsed,
+    groupResizeBehavior: 'preserve-pixel-size',
+  };
+}
+
+export interface CockpitSeparatorProps {
+  className?: string;
+  /** Name each separator when a cockpit has more than one, so assistive tech can tell them apart. */
+  'aria-label'?: string;
+  /** Keys on the focused separator, e.g. Enter to toggle the drawer that follows it. */
+  onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Double-click resets the neighbouring panel by default; turn that off where double-click means something else. */
+  disableDoubleClick?: boolean;
+}
+
+/*
+ * The library writes its interaction state to `data-separator` (inactive,
+ * hover, active, focus, disabled) because its grab target is wider than the
+ * visible line, so CSS :hover would flicker. `aria-orientation` reports the
+ * axis the separator splits, the inverse of its group, and is the only
+ * direction signal in the DOM.
+ */
+const SEPARATOR_CLASSES = [
+  'shrink-0 bg-border outline-none transition-colors duration-(--cs-motion-fast) focus-visible:z-10',
+  'aria-[orientation=vertical]:w-separator aria-[orientation=vertical]:cursor-col-resize',
+  'aria-[orientation=horizontal]:h-separator aria-[orientation=horizontal]:cursor-row-resize',
+  'data-[separator=hover]:bg-accent data-[separator=active]:bg-accent data-[separator=focus]:bg-focus',
+  'data-[separator=disabled]:bg-border data-[separator=disabled]:cursor-default',
+].join(' ');
+
+function CockpitSeparator({ className, ...rest }: CockpitSeparatorProps) {
+  return <ResizableSeparator {...rest} className={joinClasses(SEPARATOR_CLASSES, className)} />;
 }
 
 Cockpit.Panel = CockpitPanel;
 Cockpit.Separator = CockpitSeparator;
+Cockpit.Regions = CockpitRegions;
 
-/** Group and Panel ids land in the DOM; keep them selector-safe. */
+/** Group ids land in the DOM; keep them selector-safe. */
 function domId(key: string): string {
   return key.replace(/[^a-zA-Z0-9_-]+/g, '-');
 }

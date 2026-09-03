@@ -1,6 +1,6 @@
-import { Cockpit } from '@creator-studio/shell';
 import { createBrowserLayoutStore } from '@creator-studio/adapter-local';
-import { cockpitSizes } from '@creator-studio/tokens';
+import { useCockpitRegion } from '@creator-studio/shell';
+import { StudioCockpit, type StudioRegion } from './studio-cockpit.js';
 
 /*
  * Composition root. This is the one place an adapter meets a port: the shell
@@ -12,19 +12,41 @@ const PROJECT_ID = 'default';
 
 export function App() {
   return (
-    <Cockpit projectId={PROJECT_ID} store={layoutStore}>
-      <Cockpit.Panel id="nav" defaultSize={cockpitSizes.navDefault} minSize={cockpitSizes.navMin} className="p-md">
-        <Region title="Navigation" />
-      </Cockpit.Panel>
-      <Cockpit.Separator />
-      <Cockpit.Panel id="main" minSize={cockpitSizes.mainMin} className="p-lg">
-        <Region title="Manuscript" prose />
-      </Cockpit.Panel>
-      <Cockpit.Separator />
-      <Cockpit.Panel id="inspector" defaultSize={cockpitSizes.inspectorDefault} minSize={cockpitSizes.inspectorMin} className="p-md">
-        <Region title="Inspector" />
-      </Cockpit.Panel>
-    </Cockpit>
+    <StudioCockpit
+      projectId={PROJECT_ID}
+      store={layoutStore}
+      top={<Toolbar />}
+      nav={<Region title="Navigation" />}
+      main={<Region title="Manuscript" prose />}
+      context={<Region title="Context" />}
+      inspector={<Region title="Inspector" />}
+    />
+  );
+}
+
+function Toolbar() {
+  return (
+    <div role="toolbar" aria-label="Studio toolbar" className="flex h-full items-center gap-sm px-md text-sm">
+      <span className="mr-sm font-medium">Studio</span>
+      <ToggleButton region="nav" label="navigation" />
+      <ToggleButton region="context" label="context shelf" />
+      <ToggleButton region="inspector" label="inspector" />
+    </div>
+  );
+}
+
+function ToggleButton({ region, label }: { region: StudioRegion; label: string }) {
+  const toggle = useCockpitRegion(region);
+  return (
+    <button
+      type="button"
+      aria-label={`Toggle ${label}`}
+      aria-pressed={!toggle.hidden}
+      onClick={toggle.toggle}
+      className="rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:text-ink"
+    >
+      {toggle.hidden ? 'Show' : 'Hide'} {label}
+    </button>
   );
 }
 

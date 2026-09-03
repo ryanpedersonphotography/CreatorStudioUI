@@ -6,9 +6,18 @@ export type PanelLength = `${number}%` | `${number}px`;
  * length; the shell and the app read these, never literals.
  */
 export const cockpitSizes = {
+  /** A collapsed panel takes no room at all. */
+  collapsed: '0px',
+  /** The top shelf: pinned chrome, hideable. */
+  topHeight: '48px',
   navDefault: '20%',
   navMin: '160px',
   mainMin: '320px',
+  /** The main surface's floor when a context shelf sits under it. */
+  surfaceMin: '240px',
+  /** The context shelf under the main surface: draggable, collapsible. */
+  contextDefault: '180px',
+  contextMin: '120px',
   inspectorDefault: '24%',
   inspectorMin: '200px',
 } as const satisfies Record<string, PanelLength>;

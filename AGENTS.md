@@ -35,7 +35,7 @@ its own: the UI is the product and backends plug in behind ports (see *How it's 
 
 **Skeleton stands (2026-09-02).** `apps/studio` boots on port 5180; `packages/shell` renders an
 empty three-region cockpit whose layout persists through the `contracts` port and the
-`adapters/local` adapter (proven by `node tools/verify/persistence.mjs` against the dev server);
+`adapters/local` adapter (proven by `pnpm verify:ui`, a Playwright harness that runs against the dev server or, with `--preview`, the built bundle);
 `packages/tokens` holds the design tokens; `pnpm verify` is green from the root.
 
 **Next milestone — Write + Arrange:** the manuscript editor surface inside the cockpit, with the
@@ -73,8 +73,8 @@ undecided. Challenge any of them.
 - **State** — local first. When components in one feature share state: a React context + reducer
   colocated with the feature, exported from its `index.ts`. No global store.
 - **Stories and tests** — Ladle from `.ladle/` at the root across all packages; Vitest + Testing
-  Library for units, with the shared `tools/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
-  Playwright scripts under `tools/verify/` against the running app.
+  Library for units, with the shared `tools/src/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
+  the Playwright harness `tools/src/verify/cockpit.mjs` against the running app or the built bundle.
 
 ## Conventions
 
@@ -83,7 +83,7 @@ ported from the reference app. The gate list assumes the tooling under *How it's
 that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
-`typecheck · lint · lint:tokens · test · stories:build · build`. Boundaries: packages import each
+`typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview` (the last is the browser harness against the built bundle). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
@@ -131,7 +131,7 @@ is the authority; the essentials:
 
 `AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `apps/studio` (composition root: the one place an
 adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapters/local` ·
-`scripts/check-tokens.mjs` · `tools/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
+`tools/src/lint/check-tokens.mjs` · `tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
 `references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
 (review-gate records) · registry entry
 `~/.claude/scripts/proj/bin/proj get creator-studio-ui` · transcripts
