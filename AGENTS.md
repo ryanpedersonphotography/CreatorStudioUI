@@ -33,13 +33,15 @@ its own: the UI is the product and backends plug in behind ports (see *How it's 
 
 ## Stage
 
-**Skeleton stands (2026-09-02).** `apps/studio` boots on port 5180; `packages/shell` renders an
-empty three-region cockpit whose layout persists through the `contracts` port and the
-`adapters/local` adapter (proven by `pnpm verify:ui`, a Playwright harness that runs against the dev server or, with `--preview`, the built bundle);
-`packages/tokens` holds the design tokens; `pnpm verify` is green from the root.
+**Cockpit stands (2026-09-03).** `apps/studio` boots on port 5180 and composes the writer's cockpit:
+five regions from three nested cockpits (top shelf, navigation, manuscript surface, context shelf,
+inspector), with hide/show toggles, a pinned top shelf, and sidebars that hold their width when the
+window resizes. Layout persists through the `contracts` port and the `adapters/local` adapter, proven
+by `pnpm verify:ui` (a Playwright harness against the dev server or, with `--preview`, the built
+bundle); `packages/tokens` holds the design tokens; `pnpm verify` is green from the root.
 
-**Next milestone — Write + Arrange:** the manuscript editor surface inside the cockpit, with the
-first real panel controls (collapse, pin). Nothing writer-facing lands without the two-reviewer gate.
+**Next milestone — Write:** the manuscript editor surface inside the cockpit. Nothing writer-facing
+lands without the two-reviewer gate.
 
 ## How it's built
 
@@ -99,6 +101,9 @@ one job. Exported props are named `<Component>Props`.
 `/Users/ryanpederson/Downloads/finalproject/lost-lantern-studio` — Board / Map / Draft surfaces on a
 react-resizable-panels v4 shell with a single token file. Read its `docs/footguns.md` before writing
 shell code (v4 is a rewrite; v2 snippets and most LLM recall do not run). Port ideas; do not copy code.
+The panel-shell reference is `/Users/ryanpederson/Dev/Shell2/shell-widgets`: `packages/shell/rrp/src`
+holds the `AppShell`, toggle hook and separator this cockpit's are ported from, and its
+`docs/footguns.md` is the list of panel-library traps to read before touching the shell.
 
 Visual work is proven by a Playwright screenshot at a stated path. The global rules in
 `~/.claude/CLAUDE.md` apply in full.

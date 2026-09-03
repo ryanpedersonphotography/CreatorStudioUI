@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { Cockpit, pinnedPanel } from './cockpit.js';
-import type { LayoutStore } from '@creator-studio/contracts';
+import { layoutKey, type LayoutStore } from '@creator-studio/contracts';
 import { cockpitSizes } from '@creator-studio/tokens';
 
 /** A store that also records which keys were asked for. */
@@ -50,11 +50,12 @@ describe('Cockpit', () => {
       </Cockpit>,
     );
     // The library prefix never reaches the store: only our key exists.
+    // Proves no stray key was written; that the value was applied is proven in the browser harness.
     expect(store.keys()).toEqual(['cs:layout:demo:root']);
     expect(store.reads()).toContain('cs:layout:demo:root');
   });
 
-  it('remembers a conditional panel set under the key extended with its ids', () => {
+  it('reads a conditional panel set under the key extended with its ids (the write side needs a laid-out browser; the harness covers it)', () => {
     const store = memoryStore();
     render(
       <Cockpit projectId="demo" store={store} panelIds={['nav', 'main']}>
@@ -63,7 +64,9 @@ describe('Cockpit', () => {
         <Cockpit.Panel id="main">Main</Cockpit.Panel>
       </Cockpit>,
     );
-    expect(store.reads()).toContain('cs:layout:demo:root:nav:main');
+    // The library extends the key exactly the way the port names it.
+    expect(store.reads()).toContain(layoutKey('demo', 'root', ['nav', 'main']));
+    expect(layoutKey('demo', 'root', ['nav', 'main'])).toBe('cs:layout:demo:root:nav:main');
   });
 
   it('nests: a vertical cockpit and its inner group each remember their own layout', () => {

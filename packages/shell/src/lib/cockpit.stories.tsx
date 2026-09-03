@@ -15,16 +15,16 @@ const store: LayoutStore = {
 };
 
 export const ThreeRegions: Story = () => (
-  <div className="h-[80vh] border-line border-border">
+  <div className="h-dvh">
     <Cockpit projectId="story" store={store}>
       <Cockpit.Panel id="nav" defaultSize={cockpitSizes.navDefault} minSize={cockpitSizes.navMin} className="p-md text-ink-muted">
         Navigation
       </Cockpit.Panel>
-      <Cockpit.Separator />
-      <Cockpit.Panel id="main" minSize={cockpitSizes.mainMin} className="p-lg font-prose">
+      <Cockpit.Separator aria-label="Resize navigation" />
+      <Cockpit.Panel id="main" minSize={cockpitSizes.centerMinWidth} className="p-lg font-prose">
         Manuscript
       </Cockpit.Panel>
-      <Cockpit.Separator />
+      <Cockpit.Separator aria-label="Resize inspector" />
       <Cockpit.Panel
         id="inspector"
         defaultSize={cockpitSizes.inspectorDefault}
@@ -37,73 +37,46 @@ export const ThreeRegions: Story = () => (
   </div>
 );
 
-/** Five regions from three nested cockpits: pinned top shelf, two sidebars, a drawer under the surface. */
-export const FiveRegions: Story = () => {
-  const top = usePanelToggle(cockpitSizes.topHeight);
+/**
+ * What only the primitive can show: both axes from one component, a pinned
+ * shelf whose edge refuses to move yet hides from a control outside it, and
+ * toggles read through Cockpit.Regions. The product's five-region layout is
+ * storied where it lives, in apps/studio.
+ */
+export const Nested: Story = () => {
   const nav = usePanelToggle(cockpitSizes.navDefault);
-  const context = usePanelToggle(cockpitSizes.contextDefault);
-  const inspector = usePanelToggle(cockpitSizes.inspectorDefault);
-  const regions = useMemo(() => ({ top, nav, context, inspector }), [top, nav, context, inspector]);
+  const shelf = usePanelToggle(cockpitSizes.topHeight);
+  const regions = useMemo(() => ({ nav, shelf }), [nav, shelf]);
   return (
-    <div className="h-[80vh]">
+    <div className="h-dvh">
       <Cockpit.Regions regions={regions}>
-        <Cockpit projectId="five" store={store} orientation="vertical">
-          <Cockpit.Panel id="five-top" {...pinnedPanel(cockpitSizes.topHeight)} {...top.panelProps} className="border-b border-border">
-            <Toolbar />
+        <Cockpit projectId="nested" store={store} orientation="vertical">
+          <Cockpit.Panel id="nested-shelf" {...pinnedPanel(cockpitSizes.topHeight)} {...shelf.panelProps}>
+            <div className="flex h-full items-center px-md text-sm">
+              <RegionButton region="nav">Navigation</RegionButton>
+            </div>
           </Cockpit.Panel>
-          <Cockpit.Panel id="five-body">
-            <Cockpit projectId="five" store={store} group="body">
+          <Cockpit.Separator aria-label="Shelf edge" disabled />
+          <Cockpit.Panel id="nested-body">
+            <Cockpit projectId="nested" store={store} group="body">
               <Cockpit.Panel
-                id="five-nav"
+                id="nested-nav"
                 defaultSize={cockpitSizes.navDefault}
                 minSize={cockpitSizes.navMin}
                 collapsible
                 collapsedSize={cockpitSizes.collapsed}
                 groupResizeBehavior="preserve-pixel-size"
                 {...nav.panelProps}
-                className="p-md text-ink-muted"
+                className="gap-md p-md text-ink-muted"
               >
                 Navigation
+                <div>
+                  <RegionButton region="shelf">Shelf</RegionButton>
+                </div>
               </Cockpit.Panel>
               <Cockpit.Separator aria-label="Resize navigation" />
-              <Cockpit.Panel id="five-center" minSize={cockpitSizes.mainMin}>
-                <Cockpit projectId="five" store={store} group="center" orientation="vertical">
-                  <Cockpit.Panel id="five-main" minSize={cockpitSizes.surfaceMin} className="p-lg font-prose">
-                    Manuscript
-                  </Cockpit.Panel>
-                  <Cockpit.Separator
-                    aria-label="Resize context shelf"
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' || event.repeat) return;
-                      event.preventDefault();
-                      context.toggle();
-                    }}
-                  />
-                  <Cockpit.Panel
-                    id="five-context"
-                    defaultSize={cockpitSizes.contextDefault}
-                    minSize={cockpitSizes.contextMin}
-                    collapsible
-                    collapsedSize={cockpitSizes.collapsed}
-                    {...context.panelProps}
-                    className="p-md text-ink-muted"
-                  >
-                    Context shelf
-                  </Cockpit.Panel>
-                </Cockpit>
-              </Cockpit.Panel>
-              <Cockpit.Separator aria-label="Resize inspector" />
-              <Cockpit.Panel
-                id="five-inspector"
-                defaultSize={cockpitSizes.inspectorDefault}
-                minSize={cockpitSizes.inspectorMin}
-                collapsible
-                collapsedSize={cockpitSizes.collapsed}
-                groupResizeBehavior="preserve-pixel-size"
-                {...inspector.panelProps}
-                className="p-md text-ink-muted"
-              >
-                Inspector
+              <Cockpit.Panel id="nested-main" minSize={cockpitSizes.centerMinWidth} className="p-lg font-prose">
+                Manuscript
               </Cockpit.Panel>
             </Cockpit>
           </Cockpit.Panel>
@@ -113,17 +86,7 @@ export const FiveRegions: Story = () => {
   );
 };
 
-function Toolbar() {
-  return (
-    <div className="flex h-full items-center gap-sm px-md text-sm">
-      <ToggleButton region="nav" label="navigation" />
-      <ToggleButton region="context" label="context shelf" />
-      <ToggleButton region="inspector" label="inspector" />
-    </div>
-  );
-}
-
-function ToggleButton({ region, label }: { region: string; label: string }) {
+function RegionButton({ region, children }: { region: string; children: string }) {
   const toggle = useCockpitRegion(region);
   return (
     <button
@@ -132,7 +95,7 @@ function ToggleButton({ region, label }: { region: string; label: string }) {
       onClick={toggle.toggle}
       className="rounded-sm border border-border px-sm text-ink-muted hover:text-ink aria-pressed:text-ink"
     >
-      {toggle.hidden ? 'Show' : 'Hide'} {label}
+      {children}
     </button>
   );
 }

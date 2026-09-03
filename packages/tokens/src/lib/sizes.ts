@@ -12,9 +12,10 @@ export const cockpitSizes = {
   topHeight: '48px',
   navDefault: '20%',
   navMin: '160px',
-  mainMin: '320px',
-  /** The main surface's floor when a context shelf sits under it. */
-  surfaceMin: '240px',
+  /** The centre column (surface over context shelf) is never narrower than this: a width. */
+  centerMinWidth: '320px',
+  /** The main surface's floor when the context shelf sits under it: a height. */
+  mainMinHeight: '240px',
   /** The context shelf under the main surface: draggable, collapsible. */
   contextDefault: '180px',
   contextMin: '120px',

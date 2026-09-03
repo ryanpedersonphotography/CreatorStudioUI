@@ -48,7 +48,9 @@ export interface CockpitProps {
   orientation?: CockpitOrientation;
   /**
    * When some panels render conditionally, list the ids of the ones mounted
-   * right now, derived from the same state as the JSX. Each set is remembered
+   * right now, derived from the same state as the JSX, in the order they render. The library
+   * reads under your order and writes under the rendered order, so a
+   * mismatch means the layout is never restored, silently. Each set is remembered
    * under its own key: `cs:layout:<projectId>:<group>:<id>:<id>…`.
    */
   panelIds?: string[];
@@ -155,7 +157,9 @@ function CockpitPanel({
 /**
  * The props that make a region fixed in size, inert to dragging, and still
  * hideable through a toggle. A disabled panel is skipped by the drag hit-test
- * but still answers the imperative API; `collapsible` is what lets it hide.
+ * but still answers the imperative API (the reference kit measured a 120px
+ * drag on such a rail moving it zero pixels while a button still hid it);
+ * `collapsible` is what lets it hide.
  */
 export function pinnedPanel(
   size: PanelLength,
@@ -184,6 +188,8 @@ export interface CockpitSeparatorProps {
   onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
   /** Double-click resets the neighbouring panel by default; turn that off where double-click means something else. */
   disableDoubleClick?: boolean;
+  /** Draws the line but refuses drags and leaves the tab order. For an edge that must never move. */
+  disabled?: boolean;
 }
 
 /*
@@ -194,11 +200,14 @@ export interface CockpitSeparatorProps {
  * direction signal in the DOM.
  */
 const SEPARATOR_CLASSES = [
-  'shrink-0 bg-border outline-none transition-colors duration-(--cs-motion-fast) focus-visible:z-10',
+  'shrink-0 bg-border transition-colors duration-(--cs-motion-fast)',
   'aria-[orientation=vertical]:w-separator aria-[orientation=vertical]:cursor-col-resize',
   'aria-[orientation=horizontal]:h-separator aria-[orientation=horizontal]:cursor-row-resize',
   'data-[separator=hover]:bg-accent data-[separator=active]:bg-accent data-[separator=focus]:bg-focus',
   'data-[separator=disabled]:bg-border data-[separator=disabled]:cursor-default',
+  // The ring rides on :focus-visible, not on data-separator: the library reports
+  // one state at a time, and hover would replace focus while focus remains.
+  'focus-visible:z-10 focus-visible:outline-solid focus-visible:outline-(length:--cs-focus-ring) focus-visible:outline-focus',
 ].join(' ');
 
 function CockpitSeparator({ className, ...rest }: CockpitSeparatorProps) {

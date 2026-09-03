@@ -31,7 +31,7 @@
   --cs-p-radius-1: 0.25rem;
   --cs-p-radius-2: 0.5rem;
   --cs-p-line: 1px;
-  --cs-p-rail: 0.375rem;
+  --cs-p-focus-ring: 2px;
   --cs-p-motion: 120ms;
   --cs-p-text-1: 0.75rem;
   --cs-p-text-2: 0.875rem;
@@ -49,6 +49,7 @@
   --cs-border: var(--cs-p-linen);
   --cs-accent: var(--cs-p-ember);
   --cs-focus: var(--cs-p-ember);
+  --cs-focus-ring: var(--cs-p-focus-ring);
 
   --cs-space-xs: var(--cs-p-space-1);
   --cs-space-sm: var(--cs-p-space-2);
@@ -57,7 +58,6 @@
   --cs-radius-sm: var(--cs-p-radius-1);
   --cs-radius-md: var(--cs-p-radius-2);
   --cs-line: var(--cs-p-line);
-  --cs-separator-hit: var(--cs-p-rail);
   --cs-motion-fast: var(--cs-p-motion);
 
   --cs-font-ui: ui-sans-serif, system-ui, sans-serif;
@@ -118,7 +118,8 @@
   --spacing-sm: var(--cs-space-sm);
   --spacing-md: var(--cs-space-md);
   --spacing-lg: var(--cs-space-lg);
-  --spacing-separator: var(--cs-separator-hit);
+  /* the visible rule; the panel library supplies its own wider grab target */
+  --spacing-separator: var(--cs-line);
   --radius-sm: var(--cs-radius-sm);
   --radius-md: var(--cs-radius-md);
   --font-ui: var(--cs-font-ui);

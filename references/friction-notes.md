@@ -23,4 +23,22 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
 - **2026-09-02** — Port 5173 (and fallback 5190) are held by the Lost Lantern reference app in
   `~/Downloads/finalproject/lost-lantern-studio`. This repo's Vite config must pin 5180 strict; it lands with the skeleton.
 - **2026-09-02** — react-resizable-panels v4 is a rewrite; v2 snippets and most LLM recall do not run.
-  The reference app's `docs/footguns.md` is the list.
+  The Shell2 kit's list is the one to read: `/Users/ryanpederson/Dev/Shell2/shell-widgets/docs/footguns.md`.
+- **2026-09-03** — Footgun 24 in that list (a collapse hands its space to the immediate neighbour, and
+  `preserve-pixel-size` does not stop it) does not bite the studio cockpit only because every pinned
+  or collapsible region sits beside a relative panel (`center` or `main`). Put a second pinned rail
+  next to a pinned one and the exemption ends; that is when `holdPixelSizes` / `useRepinPanels` from
+  the kit come in, not before.
+
+- **2026-09-03** — Imperative `collapse()`/`expand()`/`resize()` return nothing and fire no `onResize`
+  when the group has no slack (every panel already at its minimum). The studio body needs
+  nav 160 + center 320 + inspector 200 px plus separators before a toggle can act; narrower than that
+  the toolbar buttons do nothing. `usePanelToggle` reads the group back and returns `false` from
+  `hide()`/`show()` in that case, so a caller can tell. Raising any minimum raises the threshold.
+- **2026-09-03** — Ladle 5.1 builds with its own bundled Vite 6, and `@vitejs/plugin-react` 6 peers on
+  Vite 8, so inside Ladle the React plugin does nothing. JSX then follows esbuild's tsconfig lookup,
+  and `.ladle/components.tsx` sits outside every project tsconfig: it compiled classic and the built
+  stories rendered blank with "React is not defined" while `pnpm stories:build` stayed green. The
+  Ladle Vite config names `esbuild.jsx: 'automatic'` for that reason. A green story build is not a
+  rendered story; screenshot the built output (`ladle preview`) when stories change.
+

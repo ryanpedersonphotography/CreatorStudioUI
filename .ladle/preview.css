@@ -1,3 +1,4 @@
 @import 'tailwindcss';
 @import '@creator-studio/tokens/tokens.css';
 @source '../packages';
+@source '../apps';

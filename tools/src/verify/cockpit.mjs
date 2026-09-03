@@ -3,10 +3,10 @@
  * Browser proof for the writer's cockpit: real pointer drags in headless
  * Chromium. Proves the five regions, the separator states, drag + persist +
  * reload through the port, the toggles, the keyboard, the pinned top shelf,
- * and sidebars that hold their pixels when the window resizes.
+ * and sidebars that hold their pixels while the window resizes (a stored layout is a share, not pixels).
  *
  *   pnpm verify:ui               against the dev server on :5180
- *   pnpm verify:ui --preview     build first; serves dist/ on :5181 and proves the production bundle
+ *   pnpm verify:ui --preview     serves an existing apps/studio/dist on :5181 (run `pnpm build` first; it does not build)
  *   BASE=http://… pnpm verify:ui anywhere else
  *
  * `--preview` matters: Tailwind's dev server also collects class names from
@@ -14,7 +14,7 @@
  * and only the built bundle goes bare.
  */
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 const APP = new URL('../../../apps/studio/', import.meta.url).pathname;
@@ -83,9 +83,12 @@ const fresh = async () => {
   await page.reload({ waitUntil: 'networkidle' });
   await sleep(300);
 };
-const button = (label) => page.getByRole('button', { name: `Toggle ${label}` });
+const button = (name) => page.getByRole('button', { name, exact: true });
+const focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '');
+const outline = (sel) => page.locator(sel).evaluate((el) => { const cs = getComputedStyle(el); return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) }; });
 const NAV_SEP = '[role="separator"][aria-label="Resize navigation"]';
 const CTX_SEP = '[role="separator"][aria-label="Resize context shelf"]';
+const TOP_SEP = '#top + [role="separator"]'; // nameless static separator right after the shelf
 
 // 0 — identity: fail loudly rather than test another app on that port.
 await page.goto(BASE, { waitUntil: 'networkidle' });
@@ -157,48 +160,66 @@ ok('the main surface absorbed the change', (await width('#main')) < mainBefore -
 await page.setViewportSize({ width: 1440, height: 900 });
 await sleep(300);
 
-// 5 — the top shelf is pinned: token height, inert edge
+// 5 — the top shelf is pinned: token height, and its edge is a separator that refuses
 const topHeight = await height('#top');
 ok('top shelf sits at its token height', topHeight === 48, `${topHeight}`);
-const tb = await page.locator('#top').boundingBox();
-await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height - 1);
-await page.mouse.down();
-await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height + 80, { steps: 8 });
-await page.mouse.up();
-await sleep(200);
-ok('dragging the top shelf edge moves it zero pixels', (await height('#top')) === topHeight, `${topHeight} → ${await height('#top')}`);
+ok('the shelf edge is a disabled separator', (await page.locator(TOP_SEP).getAttribute('data-separator')) === 'disabled');
+await drag(TOP_SEP, 0, 80);
+ok('dragging the shelf edge moves it zero pixels (pinned by min = max; disabled is proven above)', (await height('#top')) === topHeight, `${topHeight} → ${await height('#top')}`);
 
-// 6 — toolbar toggles hide and show, and reopen at the restore size
-await button('navigation').click();
+// 6 — toolbar toggles hide and show, and show puts back exactly what hide took away
+await button('Navigation').click();
 await sleep(300);
 ok(
   'toggle hides the nav and the button says so',
-  (await width('#nav')) === 0 && (await button('navigation').getAttribute('aria-pressed')) === 'false',
+  (await width('#nav')) === 0 && (await button('Navigation').getAttribute('aria-pressed')) === 'false',
   `${await width('#nav')}`,
 );
-await button('navigation').click();
+await button('Navigation').click();
 await sleep(300);
 const navShown = await width('#nav');
-ok('toggle shows it again at its restore size', navShown > 100 && (await button('navigation').getAttribute('aria-pressed')) === 'true', `${navShown}`);
-await button('inspector').click();
+ok(
+  'toggle shows it again at the width the writer had dragged, not the default',
+  Math.abs(navShown - navRestored) <= 1 && (await button('Navigation').getAttribute('aria-pressed')) === 'true',
+  `${navRestored} → ${navShown}`,
+);
+await button('Inspector').click();
 await sleep(300);
 ok('toggle hides the inspector', (await width('#inspector')) === 0, `${await width('#inspector')}`);
-await button('inspector').click();
+await button('Inspector').click();
 await sleep(300);
 ok('the inspector comes back', (await width('#inspector')) > 100, `${await width('#inspector')}`);
 
-// 7 — drag the context shelf shut; the button notices, and reopens it at the token default
+// 7 — the context shelf: a drag shut reopens at the token default; a button hide reopens exactly
 const contextBefore = await height('#context');
 await drag(CTX_SEP, 0, 400);
 ok('dragging the context shelf shut collapses it', (await height('#context')) === 0, `${contextBefore} → ${await height('#context')}`);
-ok('the toolbar button noticed the drag', (await button('context shelf').getAttribute('aria-pressed')) === 'false');
-await button('context shelf').click();
+ok('the toolbar button noticed the drag', (await button('Context shelf').getAttribute('aria-pressed')) === 'false');
+await button('Context shelf').click();
 await sleep(300);
-ok('the button reopens it at the token default, not the minimum', Math.abs((await height('#context')) - 180) <= 1, `${await height('#context')}`);
+ok('after a drag shut, the button reopens it at the token default, not the minimum', Math.abs((await height('#context')) - 180) <= 1, `${await height('#context')}`);
+await drag(CTX_SEP, 0, -100);
+const contextDragged = await height('#context');
+await button('Context shelf').click();
+await sleep(300);
+await button('Context shelf').click();
+await sleep(300);
+ok('after a button hide, show brings back the dragged height exactly', Math.abs((await height('#context')) - contextDragged) <= 1, `${contextDragged} → ${await height('#context')}`);
 
-// 8 — keyboard: a focused separator shows it, and Enter toggles the drawer after it
-await page.locator(CTX_SEP).focus();
-ok('a focused separator reports focus through data-separator', (await page.locator(CTX_SEP).getAttribute('data-separator')) === 'focus');
+// 8 — keyboard: Tab reaches the separators in order, focus is painted, Enter toggles the drawer
+await page.locator('#top button').last().focus();
+await page.keyboard.press('Tab');
+ok('Tab from the toolbar lands on the navigation separator, skipping the disabled shelf edge', (await focusedLabel()) === 'Resize navigation', await focusedLabel());
+ok('a focused separator reports focus through data-separator', (await page.locator(NAV_SEP).getAttribute('data-separator')) === 'focus');
+const ring = await outline(NAV_SEP);
+ok('keyboard focus paints a ring', ring.style !== 'none' && ring.width >= 1, `${ring.style} ${ring.width}px`);
+const nbNow = await box(NAV_SEP); // re-read: the drag in section 3 moved it
+await page.mouse.move(nbNow.x + nbNow.width / 2, nbNow.y + nbNow.height / 2 + 200);
+await sleep(150);
+const ringUnderHover = await outline(NAV_SEP);
+ok('the ring survives the pointer hovering the same separator', ringUnderHover.style !== 'none' && ringUnderHover.width >= 1, `${ringUnderHover.style} ${ringUnderHover.width}px`);
+await page.keyboard.press('Tab');
+ok('the next Tab reaches the context shelf separator', (await focusedLabel()) === 'Resize context shelf', await focusedLabel());
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter on the separator hides the context shelf', (await height('#context')) === 0, `${await height('#context')}`);
@@ -206,15 +227,42 @@ await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter again brings it back', (await height('#context')) > 100, `${await height('#context')}`);
 
+// 8b — a layout stored at one window size reopens at another as a share of the window, not as pixels.
+// The library persists percentages; "holds its pixels" is a promise about live resizes only. A second
+// context seeded with this one's storage keeps a live resize from re-persisting first.
+{
+  const stored = await page.evaluate(() => JSON.stringify(localStorage));
+  const bodyWide = await width('#body');
+  const navWide = await width('#nav');
+  const narrow = await browser.newContext({ viewport: { width: 1000, height: 800 } });
+  await narrow.addInitScript((json) => {
+    for (const [k, v] of Object.entries(JSON.parse(json))) localStorage.setItem(k, v);
+  }, stored);
+  const page2 = await narrow.newPage();
+  await page2.goto(BASE, { waitUntil: 'networkidle' });
+  await sleep(300);
+  const w2 = async (sel) => Math.round((await page2.locator(sel).boundingBox())?.width ?? -1);
+  const expected = Math.round((navWide / bodyWide) * (await w2('#body')));
+  const navNarrow = await w2('#nav');
+  ok(
+    'a stored layout reopens at a new window size as the same share (percentages, by design)',
+    Math.abs(navNarrow - expected) <= 2,
+    `${navWide}px of ${bodyWide} at 1440 → ${navNarrow}px at 1000, expected ${expected}`,
+  );
+  await narrow.close();
+}
+
 // 9 — only cockpit groups in storage, all under our key
 const finalKeys = await keys();
 ok(
-  'body and center groups are remembered, and nothing that is not a cockpit group',
-  finalKeys.includes(key('body')) && finalKeys.includes(key('center')) && finalKeys.every((k) => ['root', 'body', 'center'].some((g) => k === key(g))),
+  'body and center groups are remembered, and every key names a cockpit group (a conditional set may extend it)',
+  finalKeys.includes(key('body')) &&
+    finalKeys.includes(key('center')) &&
+    finalKeys.every((k) => ['root', 'body', 'center'].some((g) => k === key(g) || k.startsWith(`${key(g)}:`))),
   finalKeys.join(', '),
 );
 ok('still no console or page errors', errors.length === 0, errors.join(' | '));
 
 await browser.close();
-console.log(`\n${pass} passed, ${fail} failed ${PREVIEW ? '(production bundle)' : '(dev server)'}`);
+console.log(`\n${pass} passed, ${fail} failed ${PREVIEW ? `(production bundle built ${statSync(`${APP}dist/index.html`).mtime.toISOString()})` : '(dev server)'}`);
 process.exit(fail ? 1 : 0);

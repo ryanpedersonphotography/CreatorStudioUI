@@ -4,4 +4,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // @vitejs/plugin-react 6 peers on Vite 8; Ladle 5.1 runs its own bundled Vite 6,
+  // so the plugin is inert here and JSX falls back to esbuild's tsconfig lookup.
+  // This file sits outside every project tsconfig, which made the Provider compile
+  // classic ("React is not defined", blank built stories). Name the runtime.
+  esbuild: { jsx: 'automatic', jsxImportSource: 'react' },
 });

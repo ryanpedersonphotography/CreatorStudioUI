@@ -20,8 +20,12 @@ export interface LayoutStore {
 
 /**
  * Storage key for one panel group of one project: `cs:layout:<projectId>:<group>`.
- * Neither segment is escaped — ids are ours and contain no ':'.
+ * A group whose panels render conditionally remembers one layout per panel
+ * set, under the key extended with the ids of the panels present:
+ * `cs:layout:<projectId>:<group>:<panelId>:<panelId>…`. The shell's panel
+ * library appends them the same way, so this function can name any key the
+ * shell writes. No segment is escaped: ids are ours and contain no ':'.
  */
-export function layoutKey(projectId: string, group: string): string {
-  return `cs:layout:${projectId}:${group}`;
+export function layoutKey(projectId: string, group: string, panelIds: readonly string[] = []): string {
+  return ['cs:layout', projectId, group, ...panelIds].join(':');
 }

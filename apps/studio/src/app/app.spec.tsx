@@ -8,22 +8,29 @@ describe('App', () => {
     for (const name of ['Navigation', 'Manuscript', 'Context', 'Inspector']) {
       expect(screen.getByRole('region', { name })).toBeTruthy();
     }
-    expect(screen.getByRole('toolbar', { name: 'Studio toolbar' })).toBeTruthy();
+    expect(document.getElementById('top')).toBeTruthy();
   });
 
-  it('gives the toolbar a toggle per hideable region, all shown at first', () => {
+  it('gives the top shelf a pressed button per hideable region, named by its visible text', () => {
     render(<App />);
-    for (const label of ['navigation', 'context shelf', 'inspector']) {
-      expect(screen.getByRole('button', { name: `Toggle ${label}` }).getAttribute('aria-pressed')).toBe('true');
+    for (const name of ['Navigation', 'Context shelf', 'Inspector']) {
+      const button = screen.getByRole('button', { name });
+      expect(button.textContent).toBe(name);
+      expect(button.getAttribute('aria-pressed')).toBe('true');
     }
   });
 
-  it('names every separator so assistive tech can tell them apart', () => {
+  it('names every operable separator and leaves the static shelf edge nameless', () => {
     render(<App />);
-    expect(screen.getAllByRole('separator').map((s) => s.getAttribute('aria-label')).sort()).toEqual([
+    const separators = screen.getAllByRole('separator');
+    const operable = separators.filter((s) => s.hasAttribute('tabindex'));
+    expect(operable.map((s) => s.getAttribute('aria-label')).sort()).toEqual([
       'Resize context shelf',
       'Resize inspector',
       'Resize navigation',
     ]);
+    const stationary = separators.filter((s) => !s.hasAttribute('tabindex'));
+    expect(stationary).toHaveLength(1);
+    expect(stationary[0].getAttribute('aria-label')).toBeNull();
   });
 });

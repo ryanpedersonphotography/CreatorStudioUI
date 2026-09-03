@@ -9,6 +9,11 @@ describe('layoutKey', () => {
   it('keeps two groups of one project apart', () => {
     expect(layoutKey('demo', 'root')).not.toBe(layoutKey('demo', 'center'));
   });
+
+  it('extends the key with the ids of a conditional panel set, and never with a trailing colon', () => {
+    expect(layoutKey('demo', 'root', ['nav', 'main'])).toBe('cs:layout:demo:root:nav:main');
+    expect(layoutKey('demo', 'root', [])).toBe('cs:layout:demo:root');
+  });
 });
 
 describe('LayoutStore', () => {
