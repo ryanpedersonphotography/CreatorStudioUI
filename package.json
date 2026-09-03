@@ -6,13 +6,13 @@
     "dev": "nx serve studio",
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
-    "lint:tokens": "node scripts/check-tokens.mjs",
+    "lint:tokens": "node tools/src/lint/check-tokens.mjs",
     "test": "nx run-many -t test",
     "stories": "ladle serve",
     "stories:build": "ladle build",
     "build": "nx run-many -t build",
     "verify": "pnpm typecheck && pnpm lint && pnpm lint:tokens && pnpm test && pnpm stories:build && pnpm build",
-    "verify:slice": "node tools/verify/persistence.mjs"
+    "verify:slice": "node tools/src/verify/persistence.mjs"
   },
   "private": true,
   "devDependencies": {
@@ -65,7 +65,6 @@
   },
   "dependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-resizable-panels": "^4.12.3"
+    "react-dom": "^19.0.0"
   }
 }

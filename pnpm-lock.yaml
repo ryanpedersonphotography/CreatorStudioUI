@@ -14,9 +14,6 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.8(react@19.2.8)
-      react-resizable-panels:
-        specifier: ^4.12.3
-        version: 4.12.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@babel/core':
         specifier: ^7.14.5
@@ -181,6 +178,8 @@ importers:
         version: 4.12.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
 
   packages/tokens: {}
+
+  tools: {}
 
 packages:
 

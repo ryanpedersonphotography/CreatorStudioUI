@@ -51,7 +51,7 @@ Thumbs.db
 # project
 *.tsbuildinfo
 screenshots/*.png
-.ladle
+.ladle/.cache
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*

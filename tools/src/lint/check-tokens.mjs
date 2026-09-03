@@ -21,7 +21,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = new URL('../../..', import.meta.url).pathname;
 const TOKENS = join(ROOT, 'packages/tokens/src/tokens.css');
 /* The whole token package is the source of truth: its TS side may hold typed lengths. */
 const TOKENS_PKG = join(ROOT, 'packages/tokens/src/');

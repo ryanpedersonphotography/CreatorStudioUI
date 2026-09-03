@@ -7,7 +7,7 @@ import {
   type LayoutStorage,
 } from 'react-resizable-panels';
 import { layoutKey, type LayoutStore } from '@creator-studio/contracts';
-import type { PanelSize } from '@creator-studio/tokens';
+import type { PanelLength } from '@creator-studio/tokens';
 
 /*
  * The cockpit is one horizontal Group whose panels are whatever the caller
@@ -23,7 +23,7 @@ import type { PanelSize } from '@creator-studio/tokens';
  * Sizes always carry a unit: a bare number is pixels in react-resizable-panels v4.
  */
 
-export type { PanelSize };
+export type { PanelLength };
 
 export interface CockpitProps {
   /** Namespaces the remembered layout; one project, one layout. */
@@ -70,9 +70,9 @@ export function Cockpit({ projectId, store, group = 'root', children, className 
 export interface CockpitPanelProps {
   /** Stable, unique within the cockpit. Required: the library needs it to restore a layout. */
   id: string;
-  defaultSize?: PanelSize;
-  minSize?: PanelSize;
-  maxSize?: PanelSize;
+  defaultSize?: PanelLength;
+  minSize?: PanelLength;
+  maxSize?: PanelLength;
   children?: ReactNode;
   className?: string;
 }

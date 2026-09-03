@@ -8,6 +8,7 @@ function memoryStore(): LayoutStore & { keys: () => string[] } {
   return {
     getItem: (k) => bag.get(k) ?? null,
     setItem: (k, v) => void bag.set(k, v),
+    removeItem: (k) => void bag.delete(k),
     keys: () => [...bag.keys()],
   };
 }

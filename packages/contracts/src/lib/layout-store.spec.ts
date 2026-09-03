@@ -12,14 +12,17 @@ describe('layoutKey', () => {
 });
 
 describe('LayoutStore', () => {
-  it('is satisfied by a plain getItem/setItem object', () => {
+  it('is satisfied by a plain getItem/setItem/removeItem object', () => {
     const bag = new Map<string, string>();
     const store: LayoutStore = {
       getItem: (k) => bag.get(k) ?? null,
       setItem: (k, v) => void bag.set(k, v),
+      removeItem: (k) => void bag.delete(k),
     };
     store.setItem('a', '1');
     expect(store.getItem('a')).toBe('1');
-    expect(store.getItem('missing')).toBeNull();
+    store.removeItem('a');
+    expect(store.getItem('a')).toBeNull();
+    expect(() => store.removeItem('missing')).not.toThrow();
   });
 });

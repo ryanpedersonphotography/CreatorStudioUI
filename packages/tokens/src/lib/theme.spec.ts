@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyTheme, parseTheme, THEME_ATTRIBUTE } from './theme.js';
+import { applyTheme, parseTheme, THEME_ATTRIBUTE, THEMES } from './theme.js';
 
 function fakeRoot() {
   const attrs = new Map<string, string>();
@@ -24,6 +24,13 @@ describe('applyTheme', () => {
     applyTheme('dark', root);
     applyTheme('system', root);
     expect(root.attrs.has(THEME_ATTRIBUTE)).toBe(false);
+  });
+});
+
+describe('THEMES', () => {
+  it('lists system first so it is the default', () => {
+    expect(THEMES[0]).toBe('system');
+    expect(THEMES).toHaveLength(3);
   });
 });
 

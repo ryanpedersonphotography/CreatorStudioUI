@@ -1,1 +1,1 @@
-export { Cockpit, type CockpitPanelProps, type CockpitProps, type PanelSize } from './lib/cockpit.js';
+export { Cockpit, type CockpitPanelProps, type CockpitProps, type PanelLength } from './lib/cockpit.js';

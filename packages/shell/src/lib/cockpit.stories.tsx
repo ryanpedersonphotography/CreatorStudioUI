@@ -8,6 +8,7 @@ const bag = new Map<string, string>();
 const store: LayoutStore = {
   getItem: (k) => bag.get(k) ?? null,
   setItem: (k, v) => void bag.set(k, v),
+  removeItem: (k) => void bag.delete(k),
 };
 
 export const ThreeRegions: Story = () => (
