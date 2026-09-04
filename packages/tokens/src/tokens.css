@@ -13,7 +13,11 @@
   --cs-p-white: oklch(99% 0.004 95);
   --cs-p-paper: oklch(97% 0.006 95);
   --cs-p-linen: oklch(93% 0.008 95);
-  --cs-p-ash: oklch(50% 0.012 95); /* muted ink; 50% clears AA on white, paper and linen (5.85, 5.51, 4.90); 62% did not (3.55 on white) */
+  /* muted ink. Constrained both ways: 50% clears AA on white, paper and linen (5.85, 5.51,
+     4.90; 62% was 3.55 on white), and it must stay far enough from ink (2.74:1 now) for muted
+     text to recede. Anything that signals state with muted-vs-ink alone needs a second channel
+     (the region toggles also carry a fill). */
+  --cs-p-ash: oklch(50% 0.012 95);
   --cs-p-ink: oklch(24% 0.014 95);
   --cs-p-night: oklch(17% 0.012 260);
   --cs-p-slate: oklch(23% 0.014 260);

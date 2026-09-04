@@ -40,6 +40,7 @@ describe('StudioMenus', () => {
     const items = within(group).getAllByRole('menuitem');
     expect(items.map((el) => el.textContent)).toEqual(['New manuscript…', 'Open project…', 'Save']);
     expect(items.map((el) => el.getAttribute('aria-disabled'))).toEqual(['true', 'true', 'true']);
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(3);
     expect(within(menu).getByText('Coming soon').getAttribute('role')).toBeNull();
   });
 

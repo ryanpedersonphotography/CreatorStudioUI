@@ -35,23 +35,33 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const state = (loc) => loc.getAttribute('data-state');
   const contrast = (loc) =>
     loc.evaluate((el) => {
-      const rgb = (color) => {
+      // canvas readback turns any CSS colour (oklch included) into un-premultiplied RGBA
+      const rgba = (color) => {
         const g = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d');
         g.fillStyle = color;
         g.fillRect(0, 0, 1, 1);
-        return [...g.getImageData(0, 0, 1, 1).data].slice(0, 3);
+        const [r, gg, b, a] = g.getImageData(0, 0, 1, 1).data;
+        return { rgb: [r, gg, b], alpha: a / 255 };
       };
       const lum = (c) => c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)).reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
       const cs = getComputedStyle(el);
-      let node = el;
-      let background = cs.backgroundColor;
-      while (node && (background === 'rgba(0, 0, 0, 0)' || background === 'transparent')) {
-        node = node.parentElement;
-        background = node ? getComputedStyle(node).backgroundColor : 'rgb(255, 255, 255)';
+      // the effective background: composite every ancestor's paint, top down, until one is opaque;
+      // a transparent or translucent layer alone would score against black and flatter light text
+      const layers = [];
+      let painted = false;
+      for (let node = el; node; node = node.parentElement) {
+        const layer = rgba(getComputedStyle(node).backgroundColor);
+        if (layer.alpha === 0) continue;
+        painted = true;
+        layers.push(layer);
+        if (layer.alpha === 1) break;
       }
-      const a = lum(rgb(cs.color));
-      const b = lum(rgb(background));
-      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background };
+      let base = [255, 255, 255]; // nothing painted at all: the viewport's white
+      for (const layer of layers.reverse()) base = layer.rgb.map((v, i) => v * layer.alpha + base[i] * (1 - layer.alpha));
+      const a = lum(rgba(cs.color).rgb);
+      const b = lum(base);
+      const background = `rgb(${base.map(Math.round).join(', ')})`;
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background, painted };
     });
   const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const themeKey = () => page.evaluate(() => localStorage.getItem('cs:theme'));
@@ -149,6 +159,10 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await nav().click();
   await sleep(300);
   ok('choosing Navigation rails the nav and the toolbar button says so', (await width('#nav')) === 48 && (await button('Navigation').getAttribute('aria-pressed')) === 'false', `${await width('#nav')}px`);
+  const fill = (loc) => loc.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const unpressedFill = await fill(button('Navigation'));
+  const pressedFill = await fill(button('Inspector'));
+  ok('a pressed toggle carries a fill an unpressed one lacks: state is not signalled by ink alone', unpressedFill !== pressedFill && (await button('Inspector').getAttribute('aria-pressed')) === 'true', `${unpressedFill} vs ${pressedFill}`);
   ok('the menu closed on select', (await menus().count()) === 0);
   await openView();
   ok('reopened, Navigation is unchecked with an empty gutter', (await nav().getAttribute('aria-checked')) === 'false' && (await gutter()) === '', `"${await gutter()}"`);
@@ -188,10 +202,10 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await sleep(150);
   ok('ArrowDown opens View with the first item highlighted', (await nav().getAttribute('data-highlighted')) !== null);
   const lightRow = await contrast(nav());
-  ok('light theme: the highlighted row clears AA (≥ 4.5:1)', lightRow.ratio >= 4.5, `${lightRow.ratio.toFixed(2)}:1, ${lightRow.color} on ${lightRow.background}`);
+  ok('light theme: the highlighted row clears AA (≥ 4.5:1)', (await nav().getAttribute('data-highlighted')) !== null && lightRow.painted && lightRow.ratio >= 4.5, `${lightRow.ratio.toFixed(2)}:1, ${lightRow.color} on ${lightRow.background}`);
   const shortcutOf = (name) => item(name).locator('[data-menubar="shortcut"]');
   const lightHint = await contrast(shortcutOf('Context shelf'));
-  ok('light theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && lightHint.ratio >= 4.5, `${lightHint.ratio.toFixed(2)}:1, ${lightHint.color} on ${lightHint.background}`);
+  ok('light theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && lightHint.painted && lightHint.ratio >= 4.5, `${lightHint.ratio.toFixed(2)}:1, ${lightHint.color} on ${lightHint.background}`);
   ok('Inspector is checked before the typeahead, so its text starts with the mark', (await item('Inspector').getAttribute('aria-checked')) === 'true');
   await page.keyboard.press('i');
   await sleep(150);
@@ -214,7 +228,7 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const heading = () => menu().getByText('Coming soon', { exact: true });
   ok('and its heading says why it is dimmed, naming the group', (await heading().count()) === 1 && (await menu().getByRole('group', { name: 'Coming soon' }).count()) === 1);
   const lightHeading = await contrast(heading());
-  ok('light theme: the muted heading clears AA (≥ 4.5:1)', lightHeading.ratio >= 4.5, `${lightHeading.ratio.toFixed(2)}:1, ${lightHeading.color} on ${lightHeading.background}`);
+  ok('light theme: the muted heading clears AA (≥ 4.5:1)', lightHeading.painted && lightHeading.ratio >= 4.5, `${lightHeading.ratio.toFixed(2)}:1, ${lightHeading.color} on ${lightHeading.background}`);
   await closeAll();
 
   // 7 — theme: chosen from a submenu, stamped on <html>, remembered across a reload; Escape closes one level
@@ -241,16 +255,16 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await menu().waitFor({ state: 'visible' });
   await sleep(100);
   const darkRow = await contrast(nav());
-  ok('dark theme: the highlighted row clears AA (≥ 4.5:1)', (await nav().getAttribute('data-highlighted')) !== null && darkRow.ratio >= 4.5, `${darkRow.ratio.toFixed(2)}:1, ${darkRow.color} on ${darkRow.background}`);
+  ok('dark theme: the highlighted row clears AA (≥ 4.5:1)', (await nav().getAttribute('data-highlighted')) !== null && darkRow.painted && darkRow.ratio >= 4.5, `${darkRow.ratio.toFixed(2)}:1, ${darkRow.color} on ${darkRow.background}`);
   const darkHint = await contrast(shortcutOf('Context shelf'));
-  ok('dark theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && darkHint.ratio >= 4.5, `${darkHint.ratio.toFixed(2)}:1, ${darkHint.color} on ${darkHint.background}`);
+  ok('dark theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && darkHint.painted && darkHint.ratio >= 4.5, `${darkHint.ratio.toFixed(2)}:1, ${darkHint.color} on ${darkHint.background}`);
   await closeAll();
   await trigger('File').focus();
   await page.keyboard.press('ArrowDown');
   await menu().waitFor({ state: 'visible' });
   await sleep(100);
   const darkHeading = await contrast(heading());
-  ok('dark theme: the muted heading clears AA (≥ 4.5:1)', darkHeading.ratio >= 4.5, `${darkHeading.ratio.toFixed(2)}:1, ${darkHeading.color} on ${darkHeading.background}`);
+  ok('dark theme: the muted heading clears AA (≥ 4.5:1)', darkHeading.painted && darkHeading.ratio >= 4.5, `${darkHeading.ratio.toFixed(2)}:1, ${darkHeading.color} on ${darkHeading.background}`);
   await closeAll();
   await openView();
   await item('Theme').click();
