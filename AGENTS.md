@@ -98,7 +98,7 @@ an agent's own reading of necessity is never one.** `playwright-cli` is on PATH 
 `snapshot`, `find`, `click`, `eval`, `screenshot`, `close`) and is headless unless told otherwise.
 `npx playwright screenshot` and a Node script run from the repo root are the fallbacks, still
 headless. The bans below are examples of that rule, not its extent; an unlisted headed path is still
-forbidden: `--headed`, `attach` to the user's Chrome, `show --annotate` (a dashboard window),
+forbidden: `--headed`, `attach` to the user's Chrome, `playwright-cli show` (the dashboard window, with or without `--annotate`),
 `npx playwright open`, `codegen`, `playwright test --ui` / `--debug` / `PWDEBUG=1`, `show-report`,
 `show-trace`, and a computer-use tool. Dev servers are the other leak: Ladle's `serve` and `preview`
 open a tab in the default browser unless `.ladle/vite.config.mts` says `open: false` (it does; keep

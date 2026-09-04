@@ -81,6 +81,12 @@ const drag = async (sel, dx, dy) => {
   await page.mouse.up();
   await sleep(300);
 };
+/** The library's double-click reset; raw mouse, since the 1px separator fails Playwright's hit test. */
+const doubleClick = async (sel) => {
+  const b = await page.locator(sel).boundingBox();
+  await page.mouse.dblclick(b.x + b.width / 2, b.y + b.height / 2);
+  await sleep(300);
+};
 const fresh = async () => {
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
@@ -272,6 +278,22 @@ await button('Expand inspector').click();
 await sleep(300);
 ok('the inspector rail brings it back at exactly the width it had', Math.abs((await width('#inspector')) - inspectorBefore) <= 1, `${inspectorBefore} → ${await width('#inspector')}`);
 
+// 6a — the two user gestures the library handles without our toggles still record intent:
+// a resize key on a separator (attributed by the library), and a double-click reset (the library's
+// imperative path, reported by the separator itself). Nothing here goes through a button.
+await fresh();
+ok('fresh: no bits before any gesture', (await bits()) === '---', await bits());
+await page.locator(NAV_SEP).focus();
+await page.keyboard.press('ArrowRight');
+await sleep(300);
+ok('a resize key on the nav separator is the user\'s: the group\'s bits are written', (await bits())[0] === '0' && (await width('#nav')) > 288, `${await bits()} at ${await width('#nav')}px`);
+await button('Navigation').click();
+await sleep(300);
+ok('toolbar collapse: bit 1', (await bits())[0] === '1', await bits());
+await doubleClick(NAV_SEP);
+ok('double-clicking the separator reopens the nav and records it', (await width('#nav')) > 100 && (await bits())[0] === '0', `${await width('#nav')}px, ${await bits()}`);
+await fresh();
+
 // 6b — a rail can be dragged open, and the toolbar's expand then returns to that dragged width
 await button('Navigation').click();
 await sleep(300);
@@ -352,7 +374,7 @@ ok('the shelf sits off its default before the keyboard round trip', Math.abs(con
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter on the separator collapses the context shelf to its strip', (await height('#context')) === 32, `${await height('#context')}`);
-ok('a keyboard collapse is the user\'s: it is remembered', (await bits())[1] === '1', await bits());
+ok('the app\'s Enter handler collapses through the toggle, so it is remembered', (await bits())[1] === '1', await bits());
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter again brings it back at exactly the height it had', Math.abs((await height('#context')) - contextBeforeEnter) <= 1, `${contextBeforeEnter} → ${await height('#context')}`);

@@ -4,6 +4,7 @@ import {
   Panel as ResizablePanel,
   Separator as ResizableSeparator,
   useDefaultLayout,
+  useGroupCallbackRef,
   type GroupProps,
   type LayoutStorage,
   type PanelProps,
@@ -96,8 +97,13 @@ function asLayoutStorage(store: LayoutStore): LayoutStorage {
  * attributes a layout change to the user only for a released drag or a
  * separator key; imperative calls, the mount and a window resize are not the
  * user's, and a panel that must tell intent from a squeeze needs the
- * difference. Every panel of the group hears every user change, whether or
- * not its own size moved.
+ * difference. A separator's double-click reset is the user's too, but reaches
+ * the library through its imperative path, and the library resolves the
+ * gesture through its own inflated hit regions, so the 1px separator element
+ * is never the event's target. The group watches for it instead: a
+ * window-level double-click snapshots the layout, and if the layout differs
+ * once the dispatch is over, the reset happened here. Every panel of the group
+ * hears every user change, whether or not its own size moved.
  */
 const UserLayoutContext = createContext<Set<() => void> | null>(null);
 
@@ -112,20 +118,38 @@ export function Cockpit({
 }: CockpitProps) {
   const id = layoutKey(projectId, group);
   const storage = useMemo(() => asLayoutStorage(store ?? sessionStore()), [store]);
+  // Only the release-time callback is wired; the hook's deprecated per-move
+  // onLayoutChange is left off, so a layout is saved when a drag ends, not during it.
   const { defaultLayout, onLayoutChanged: save } = useDefaultLayout({ id, storage, panelIds });
   const listeners = useRef(new Set<() => void>()).current;
+  const notify = useCallback(() => listeners.forEach((listener) => listener()), [listeners]);
   const onLayoutChanged = useCallback<NonNullable<GroupProps['onLayoutChanged']>>(
     (layout, meta) => {
       save(layout, meta);
-      if (meta.isUserInteraction) listeners.forEach((listener) => listener());
+      if (meta.isUserInteraction) notify();
     },
-    [save, listeners],
+    [save, notify],
   );
+  const [groupHandle, setGroupHandle] = useGroupCallbackRef();
+  useEffect(() => {
+    if (!groupHandle) return;
+    const onDoubleClick = () => {
+      const before = JSON.stringify(groupHandle.getLayout());
+      // The library's handler runs at document capture, later in this same
+      // dispatch, and commits synchronously; compare once the dispatch is over.
+      setTimeout(() => {
+        if (JSON.stringify(groupHandle.getLayout()) !== before) notify();
+      }, 0);
+    };
+    window.addEventListener('dblclick', onDoubleClick, true);
+    return () => window.removeEventListener('dblclick', onDoubleClick, true);
+  }, [groupHandle, notify]);
   return (
     <UserLayoutContext.Provider value={listeners}>
       <Group
         defaultLayout={defaultLayout}
         onLayoutChanged={onLayoutChanged}
+        groupRef={setGroupHandle}
         id={domId(id)}
         orientation={orientation}
         className={joinClasses('flex h-full w-full bg-bg text-ink font-ui', className)}
