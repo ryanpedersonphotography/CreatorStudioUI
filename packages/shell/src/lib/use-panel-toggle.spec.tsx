@@ -33,12 +33,17 @@ function mount(restoreSize?: (typeof cockpitSizes)[keyof typeof cockpitSizes], c
   const { handle, spies, state } = fakeHandle(collapsed, stuck);
   const rendered = renderHook(() => usePanelToggle(restoreSize, memory));
   act(() => (rendered.result.current.panelProps.panelRef as AttachRef)(handle));
-  /** What the library does after a drag: report the new size through onResize. */
-  const dragTo = (isCollapsed: boolean) => {
+  /** What the library does after a size change of any origin: report it through onResize. */
+  const resizeTo = (isCollapsed: boolean) => {
     state.collapsed = isCollapsed;
     act(() => rendered.result.current.panelProps.onResize?.({ asPercentage: 0, inPixels: 0 }, 'nav', undefined));
   };
-  return { ...rendered, spies, dragTo };
+  /** A released drag: the size change, then the cockpit's user-interaction report. */
+  const dragTo = (isCollapsed: boolean) => {
+    resizeTo(isCollapsed);
+    act(() => rendered.result.current.panelProps.onUserLayout?.());
+  };
+  return { ...rendered, spies, dragTo, resizeTo };
 }
 
 describe('usePanelToggle', () => {
@@ -174,7 +179,7 @@ describe('usePanelToggle', () => {
       expect(result.current.collapsed).toBe(false);
     });
 
-    it('writes each transition the user makes: buttons and drags, after the mount', () => {
+    it('writes each transition the user makes: buttons and released drags', () => {
       const memory = fakeMemory(false);
       const { result, dragTo } = mount(cockpitSizes.navDefault, false, false, memory);
       act(() => void result.current.collapse());
@@ -184,6 +189,14 @@ describe('usePanelToggle', () => {
       dragTo(true);
       expect(memory.write).toHaveBeenLastCalledWith(true);
       expect(memory.write).toHaveBeenCalledTimes(3);
+    });
+
+    it('a size change the user did not make (a window squeeze) updates collapsed but writes nothing', () => {
+      const memory = fakeMemory(false);
+      const { result, resizeTo } = mount(cockpitSizes.navDefault, false, false, memory);
+      resizeTo(true);
+      expect(result.current.collapsed).toBe(true);
+      expect(memory.write).not.toHaveBeenCalled();
     });
 
     it('a collapse() issued before the mount settles is intent: the mount does not undo it', () => {
@@ -208,8 +221,8 @@ describe('usePanelToggle', () => {
     });
   });
 
-  it('hands the panel exactly the two props it must spread', () => {
+  it('hands the panel exactly the three props it must spread', () => {
     const { result } = renderHook(() => usePanelToggle());
-    expect(Object.keys(result.current.panelProps).sort()).toEqual(['onResize', 'panelRef']);
+    expect(Object.keys(result.current.panelProps).sort()).toEqual(['onResize', 'onUserLayout', 'panelRef']);
   });
 });

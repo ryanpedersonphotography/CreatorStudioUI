@@ -1,9 +1,10 @@
-import { useMemo, type KeyboardEvent, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import {
   Group,
   Panel as ResizablePanel,
   Separator as ResizableSeparator,
   useDefaultLayout,
+  type GroupProps,
   type LayoutStorage,
   type PanelProps,
 } from 'react-resizable-panels';
@@ -90,6 +91,16 @@ function asLayoutStorage(store: LayoutStore): LayoutStorage {
   };
 }
 
+/**
+ * Who wants to hear that the user changed this group's layout. The library
+ * attributes a layout change to the user only for a released drag or a
+ * separator key; imperative calls, the mount and a window resize are not the
+ * user's, and a panel that must tell intent from a squeeze needs the
+ * difference. Every panel of the group hears every user change, whether or
+ * not its own size moved.
+ */
+const UserLayoutContext = createContext<Set<() => void> | null>(null);
+
 export function Cockpit({
   projectId,
   store,
@@ -101,21 +112,35 @@ export function Cockpit({
 }: CockpitProps) {
   const id = layoutKey(projectId, group);
   const storage = useMemo(() => asLayoutStorage(store ?? sessionStore()), [store]);
-  const layout = useDefaultLayout({ id, storage, panelIds });
+  const { defaultLayout, onLayoutChanged: save } = useDefaultLayout({ id, storage, panelIds });
+  const listeners = useRef(new Set<() => void>()).current;
+  const onLayoutChanged = useCallback<NonNullable<GroupProps['onLayoutChanged']>>(
+    (layout, meta) => {
+      save(layout, meta);
+      if (meta.isUserInteraction) listeners.forEach((listener) => listener());
+    },
+    [save, listeners],
+  );
   return (
-    <Group
-      {...layout}
-      id={domId(id)}
-      orientation={orientation}
-      className={joinClasses('flex h-full w-full bg-bg text-ink font-ui', className)}
-    >
-      {children}
-    </Group>
+    <UserLayoutContext.Provider value={listeners}>
+      <Group
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
+        id={domId(id)}
+        orientation={orientation}
+        className={joinClasses('flex h-full w-full bg-bg text-ink font-ui', className)}
+      >
+        {children}
+      </Group>
+    </UserLayoutContext.Provider>
   );
 }
 
 /** What a toggle attaches to the panel it controls. Spread it; never build it by hand. */
-export type CockpitPanelBinding = Pick<PanelProps, 'panelRef' | 'onResize'>;
+export type CockpitPanelBinding = Pick<PanelProps, 'panelRef' | 'onResize'> & {
+  /** Called after a layout change the library attributes to the user (a released drag, a separator key) touched this group. */
+  onUserLayout?: () => void;
+};
 
 export interface CockpitPanelProps extends CockpitPanelBinding {
   /** Stable, unique on the page. Required: the library needs it to restore a layout. */
@@ -149,9 +174,16 @@ function CockpitPanel({
   groupResizeBehavior,
   panelRef,
   onResize,
+  onUserLayout,
   children,
   className,
 }: CockpitPanelProps) {
+  const listeners = useContext(UserLayoutContext);
+  useEffect(() => {
+    if (!listeners || !onUserLayout) return;
+    listeners.add(onUserLayout);
+    return () => void listeners.delete(onUserLayout);
+  }, [listeners, onUserLayout]);
   return (
     <ResizablePanel
       id={id}

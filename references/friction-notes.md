@@ -49,8 +49,15 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   resizing never shows it, and a rail-sized `collapsedSize` raises every midpoint, which is what
   exposed it. Two fixes: the root group is session-only (`Cockpit` without a `store`), and the
   persisted regions remember whether the user collapsed them under `cs:collapsed:<project>:<panel>`
-  (`CollapsedMemory` on `usePanelToggle`), reconciled on mount and only ever reopening. The harness
-  seeds both cases (§5b shelf at 740px tall, §5c nav at 900px wide).
+  (`CollapsedMemory` on `usePanelToggle`), reconciled on mount and only ever reopening. That memory
+  records intent only: the toggles, and layout changes the library attributes to the user
+  (`onLayoutChanged`'s `isUserInteraction`, relayed by the cockpit as `onUserLayout`). Never
+  `onResize`: it also fires when a window squeeze rails the nav below ~700px wide, and recording that
+  as a collapse made the squeeze permanent (reviewer D). The stored share still degrades on a
+  squeeze, so a reload after one reopens the nav at its minimum rather than its old width; the
+  library's `onlySaveAfterUserInteractions` would keep the share but also stop saving toggle
+  collapses, which the bit would then have to restore on mount. Recorded as the door, not taken. The
+  harness seeds the clamp cases (§5b shelf at 740px tall, §5c nav at 900px wide) and the squeeze (§1b).
 - **2026-09-04** — A control that unmounts itself on activation (a toolbar button that collapses the
   shelf it lives in; an expand button inside a rail) drops keyboard focus to the document. The preset
   wraps each toggle so that when focus was inside the region at the call, it moves to the new

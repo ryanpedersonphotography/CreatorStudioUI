@@ -69,6 +69,8 @@ const box = (sel) => page.locator(sel).first().boundingBox();
 const width = async (sel) => Math.round((await box(sel))?.width ?? -1);
 const height = async (sel) => Math.round((await box(sel))?.height ?? -1);
 const keys = () => page.evaluate(() => Object.keys(localStorage).sort());
+/** The three remembered collapsed bits, nav|context|inspector, '-' where nothing is written. */
+const bits = () => page.evaluate(() => ['nav', 'context', 'inspector'].map((r) => localStorage.getItem(`cs:collapsed:default:${r}`) ?? '-').join(''));
 const drag = async (sel, dx, dy) => {
   const b = await page.locator(sel).boundingBox();
   const x = b.x + b.width / 2;
@@ -107,6 +109,22 @@ for (const id of ['top', 'nav', 'main', 'context', 'inspector']) {
   ok(`region #${id} renders`, (await page.locator(`#${id}`).count()) === 1);
 }
 ok('no console or page errors on load', errors.length === 0, errors.join(' | '));
+
+ok('a plain mount remembers nothing: no collapsed bits before any interaction', !(await keys()).some((k) => k.startsWith('cs:collapsed:')), (await keys()).join(', '));
+
+// 1b — a window squeeze is not the user collapsing anything. Below ~700px the body cannot hold
+// nav + centre + inspector and the library rails the nav; that must not be recorded as intent, and
+// a reload on a wide window must bring the nav back open.
+await page.setViewportSize({ width: 600, height: 900 });
+await sleep(400);
+ok('a 600px window squeezes the nav to its rail', (await width('#nav')) === 48, `${await width('#nav')}`);
+ok('and writes no collapsed bit', !(await bits()).includes('1'), await bits());
+await page.setViewportSize({ width: 1440, height: 900 });
+await sleep(400);
+await page.reload({ waitUntil: 'networkidle' });
+await sleep(400);
+ok('after the squeeze, a reload on a wide window mounts the nav open and pressed (at its minimum: the squeezed share is what the store kept)', (await width('#nav')) >= 160 && (await button('Navigation').getAttribute('aria-pressed')) === 'true', `${await width('#nav')}px`);
+await fresh();
 
 // 2 — the separator speaks v4: data-separator, and the styles listen to it
 const sepColor = () => page.locator(NAV_SEP).evaluate((el) => getComputedStyle(el).backgroundColor);
@@ -270,6 +288,7 @@ ok('collapse then expand from the toolbar returns to the dragged-open width', Ma
 const contextBefore = await height('#context');
 await drag(CTX_SEP, 0, 400);
 ok('dragging the context shelf shut lands on its strip', (await height('#context')) === 32, `${contextBefore} → ${await height('#context')}`);
+ok('a released drag is the user\'s: the collapse is remembered', (await bits())[1] === '1', await bits());
 ok('the toolbar button noticed the drag', (await button('Context shelf').getAttribute('aria-pressed')) === 'false');
 await button('Expand context shelf').click();
 await sleep(300);
@@ -299,7 +318,6 @@ ok(
   'their expand controls come back with them',
   (await page.getByRole('button', { name: /^Expand (navigation|context shelf|inspector)$/ }).count()) === 3,
 );
-const bits = () => page.evaluate(() => ['nav', 'context', 'inspector'].map((r) => localStorage.getItem(`cs:collapsed:default:${r}`)).join(''));
 ok('the collapses were remembered as intent under their own keys', (await bits()) === '111', await bits());
 ok(
   'the top shelf mounts expanded after a reload: its collapse is session-scoped',
@@ -326,10 +344,15 @@ const ringUnderHover = await outline(NAV_SEP);
 ok('the ring survives the pointer hovering the same separator', ringUnderHover.style !== 'none' && ringUnderHover.width >= 1, `${ringUnderHover.style} ${ringUnderHover.width}px`);
 await page.keyboard.press('Tab');
 ok('the next Tab reaches the context shelf separator', (await focusedLabel()) === 'Resize context shelf', await focusedLabel());
+// Away from the default first, so "exactly" cannot be satisfied by a fallback to it.
+await drag(CTX_SEP, 0, -60);
+await page.locator(CTX_SEP).focus();
 const contextBeforeEnter = await height('#context');
+ok('the shelf sits off its default before the keyboard round trip', Math.abs(contextBeforeEnter - 180) > 20, `${contextBeforeEnter}px`);
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter on the separator collapses the context shelf to its strip', (await height('#context')) === 32, `${await height('#context')}`);
+ok('a keyboard collapse is the user\'s: it is remembered', (await bits())[1] === '1', await bits());
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter again brings it back at exactly the height it had', Math.abs((await height('#context')) - contextBeforeEnter) <= 1, `${contextBeforeEnter} → ${await height('#context')}`);
