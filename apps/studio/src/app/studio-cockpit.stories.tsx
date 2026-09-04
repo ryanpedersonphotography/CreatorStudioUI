@@ -41,6 +41,7 @@ export const CompactStates: Story = () => (
     <StudioCockpit
       projectId="story-compact"
       store={store}
+      shortcuts={<StudioShortcuts />}
       top={<StudioToolbar store={store} projectId="story-compact" />}
       nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
       main={

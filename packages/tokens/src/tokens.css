@@ -48,6 +48,9 @@
   --cs-ink-muted: var(--cs-p-ash);
   --cs-border: var(--cs-p-linen);
   --cs-accent: var(--cs-p-ember);
+  /* text on an accent fill; pinned to night in both themes, because ember is a mid tone
+     that neither ink nor chalk clears AA on in the light theme */
+  --cs-on-accent: var(--cs-p-night);
   --cs-focus: var(--cs-p-ember);
   --cs-focus-ring: var(--cs-p-focus-ring);
 

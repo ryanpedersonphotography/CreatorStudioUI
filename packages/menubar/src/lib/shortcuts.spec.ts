@@ -34,9 +34,10 @@ describe('matchesShortcut', () => {
     expect(matchesShortcut(new KeyboardEvent('keydown', { key: 'b', metaKey: true }), ctrlMetaB)).toBe(false);
     expect(matchesShortcut(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true, metaKey: true, shiftKey: true }), ctrlMetaB)).toBe(false);
   });
-  it('falls back to the physical key when Option composes the character', () => {
-    const event = new KeyboardEvent('keydown', { key: '∫', code: 'KeyB', altKey: true });
-    expect(matchesShortcut(event, { key: 'b', alt: true })).toBe(true);
+  it('falls back to the physical key when Option composes the character, for letters and digits', () => {
+    expect(matchesShortcut(new KeyboardEvent('keydown', { key: '∫', code: 'KeyB', altKey: true }), { key: 'b', alt: true })).toBe(true);
+    expect(matchesShortcut(new KeyboardEvent('keydown', { key: '¡', code: 'Digit1', altKey: true }), { key: '1', alt: true })).toBe(true);
+    expect(matchesShortcut(new KeyboardEvent('keydown', { key: '÷', code: 'Slash', altKey: true }), { key: '/', alt: true })).toBe(false);
   });
 });
 
@@ -86,6 +87,25 @@ describe('useShortcuts', () => {
     const event = keydown({ key: 'b', ctrlKey: true, metaKey: true });
     expect(run).not.toHaveBeenCalled();
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('a binding whose guard says no yields to a later one on the same keys', () => {
+    const editor = vi.fn();
+    const elsewhere = vi.fn();
+    let inEditor = false;
+    renderHook(() =>
+      useShortcuts([
+        { shortcut: ctrlMetaB, run: editor, when: () => inEditor },
+        { shortcut: ctrlMetaB, run: elsewhere },
+      ]),
+    );
+    keydown({ key: 'b', ctrlKey: true, metaKey: true });
+    expect(editor).not.toHaveBeenCalled();
+    expect(elsewhere).toHaveBeenCalledTimes(1);
+    inEditor = true;
+    keydown({ key: 'b', ctrlKey: true, metaKey: true });
+    expect(editor).toHaveBeenCalledTimes(1);
+    expect(elsewhere).toHaveBeenCalledTimes(1);
   });
 
   it('ignores a held key and an event something else already handled', () => {

@@ -60,8 +60,7 @@ export const Standalone: Story = () => (
 export const Matrix: Story = () => (
   <Menubar aria-label="Matrix menu" defaultValue="all">
     <Menubar.Menu label="All parts" value="all">
-      <Menubar.Label>Items</Menubar.Label>
-      <Menubar.Group>
+      <Menubar.Group label="Items">
         <Menubar.Item shortcut={{ key: 'o', meta: true }}>Plain item</Menubar.Item>
         <Menubar.Item disabled>Disabled item</Menubar.Item>
       </Menubar.Group>

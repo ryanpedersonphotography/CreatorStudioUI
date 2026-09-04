@@ -43,14 +43,22 @@ export function serializeShortcut(shortcut: Shortcut): string {
   return [...modifiers(shortcut).map((m) => ARIA_NAMES[m]), keyLabel(shortcut.key)].join('+');
 }
 
+/** The physical-key name for a letter or digit, so an Option combination still matches; nothing for other keys. */
+function physicalCode(key: string): string | undefined {
+  if (/^[a-z]$/.test(key)) return `Key${key.toUpperCase()}`;
+  if (/^[0-9]$/.test(key)) return `Digit${key}`;
+  return undefined;
+}
+
 /**
  * Whether a keydown is exactly this combination: every named modifier held and
- * no other. Letters also match on `code`, because macOS reports an Option
- * combination's `key` as the composed character (⌥B is '∫').
+ * no other. Letters and digits also match on `code`, because macOS reports an
+ * Option combination's `key` as the composed character (⌥B is '∫').
  */
 export function matchesShortcut(event: KeyboardEvent, shortcut: Shortcut): boolean {
   const key = shortcut.key.toLowerCase();
-  const keyMatches = event.key.toLowerCase() === key || (key.length === 1 && event.code === `Key${key.toUpperCase()}`);
+  const code = physicalCode(key);
+  const keyMatches = event.key.toLowerCase() === key || (code !== undefined && event.code === code);
   return (
     keyMatches &&
     event.metaKey === Boolean(shortcut.meta) &&
@@ -63,7 +71,11 @@ export function matchesShortcut(event: KeyboardEvent, shortcut: Shortcut): boole
 export interface ShortcutBinding {
   shortcut: Shortcut;
   run: () => void;
-  /** An extra guard, checked at the keystroke: "only while this region is open". */
+  /**
+   * An extra guard, checked at the keystroke: "only while this region is open".
+   * A binding whose guard says no is skipped, so two bindings may share a
+   * combination and the first whose guard passes runs.
+   */
   when?: () => boolean;
   /**
    * Fire even while the user is typing in a field. Off by default: in a writing
@@ -73,7 +85,7 @@ export interface ShortcutBinding {
   global?: boolean;
 }
 
-/** A field, a text area, or anything inside a contenteditable region. */
+/** A field, a text area, a select, or anything inside a contenteditable region. */
 function isEditable(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   const tag = target.tagName;
@@ -87,7 +99,8 @@ function isEditable(target: EventTarget | null): boolean {
  * listener on the window, registered once and removed on unmount; the bindings
  * are read through a ref at each keystroke, so a caller may pass a fresh array
  * every render without re-registering or double-firing. The first matching
- * binding wins and the event's default is prevented; a held key does not repeat.
+ * binding whose guard passes wins and the event's default is prevented; a held
+ * key does not repeat.
  */
 export function useShortcuts(bindings: readonly ShortcutBinding[]): void {
   const latest = useRef(bindings);
@@ -101,7 +114,7 @@ export function useShortcuts(bindings: readonly ShortcutBinding[]): void {
       for (const binding of latest.current) {
         if (!matchesShortcut(event, binding.shortcut)) continue;
         if (editable && !binding.global) return;
-        if (binding.when && !binding.when()) return;
+        if (binding.when && !binding.when()) continue;
         event.preventDefault();
         binding.run();
         return;

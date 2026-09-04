@@ -4,7 +4,9 @@
 /* Vite's root is this app, so tell Tailwind to scan the packages it composes. */
 @source '../../../packages';
 
-/* The menubar's contract, mapped from the studio's tokens. On :root because the menus portal to body. */
+/* The menubar's contract, mapped from the studio's tokens. On :root because the menus portal to body.
+   Left on the package's own fallbacks, on purpose: --menubar-shadow (no shadow token exists yet),
+   --menubar-min-width, --menubar-indicator-width, --menubar-z. */
 :root {
   --menubar-bg: var(--cs-surface);
   --menubar-fg: var(--cs-ink);
@@ -12,7 +14,7 @@
   --menubar-border: var(--cs-border);
   --menubar-border-width: var(--cs-line);
   --menubar-highlight-bg: var(--cs-accent);
-  --menubar-highlight-fg: var(--cs-surface);
+  --menubar-highlight-fg: var(--cs-on-accent);
   --menubar-focus: var(--cs-focus);
   --menubar-focus-ring: var(--cs-focus-ring);
   --menubar-radius: var(--cs-radius-sm);

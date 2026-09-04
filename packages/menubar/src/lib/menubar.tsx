@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { createContext, useContext, useId, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 // Radix, not Ark: Ark UI has no menubar; the bar-level roving focus and hover-switch live here.
 import * as Radix from '@radix-ui/react-menubar';
 import { formatShortcut, serializeShortcut, type Shortcut, type ShortcutPlatform } from './shortcuts.js';
@@ -218,16 +218,29 @@ export function MenubarSeparator(props: MenubarSeparatorProps) {
 
 export type MenubarLabelProps = ComponentPropsWithoutRef<typeof Radix.Label>;
 
-/** A heading over a run of items; not focusable, not selectable. */
+/**
+ * A heading over a run of items; not focusable, not selectable, and no ARIA
+ * role of its own (Radix renders a plain div). Give the heading to
+ * `Menubar.Group` as its `label` when the group should be announced by it.
+ */
 export function MenubarLabel(props: MenubarLabelProps) {
   return <Radix.Label data-menubar="group-label" {...props} />;
 }
 
-export type MenubarGroupProps = ComponentPropsWithoutRef<typeof Radix.Group>;
+export interface MenubarGroupProps extends ComponentPropsWithoutRef<typeof Radix.Group> {
+  /** A heading rendered at the top of the group, which names the group for assistive tech. */
+  label?: ReactNode;
+}
 
-/** Groups items for assistive tech, usually under a `MenubarLabel`. */
-export function MenubarGroup(props: MenubarGroupProps) {
-  return <Radix.Group data-menubar="group" {...props} />;
+/** Groups items for assistive tech; with `label`, the group is announced by that heading. */
+export function MenubarGroup({ label, children, ...rest }: MenubarGroupProps) {
+  const id = useId();
+  return (
+    <Radix.Group data-menubar="group" aria-labelledby={label === undefined ? undefined : id} {...rest}>
+      {label !== undefined && <MenubarLabel id={id}>{label}</MenubarLabel>}
+      {children}
+    </Radix.Group>
+  );
 }
 
 Menubar.Menu = MenubarMenu;

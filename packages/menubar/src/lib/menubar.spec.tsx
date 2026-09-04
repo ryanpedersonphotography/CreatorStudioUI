@@ -36,8 +36,7 @@ function Fixture({ bar, navigation = false, ...on }: Handlers & { bar?: Partial<
             <Menubar.RadioItem value="dark">Dark</Menubar.RadioItem>
           </Menubar.RadioGroup>
         </Menubar.Sub>
-        <Menubar.Label>Layout</Menubar.Label>
-        <Menubar.Group>
+        <Menubar.Group label="Layout">
           <Menubar.Item onSelect={on.onReset}>Reset layout</Menubar.Item>
         </Menubar.Group>
       </Menubar.Menu>
@@ -73,8 +72,9 @@ describe('Menubar', () => {
     expect(within(menu).getByRole('menuitemcheckbox', { name: 'Navigation' })).toBeTruthy();
     expect(within(menu).getByRole('menuitem', { name: 'Theme' }).getAttribute('aria-haspopup')).toBe('menu');
     expect(within(menu).getByRole('separator')).toBeTruthy();
-    expect(within(menu).getByRole('group').textContent).toContain('Reset layout');
-    expect(within(menu).getByText('Layout').getAttribute('data-menubar')).toBe('group-label');
+    const group = within(menu).getByRole('group', { name: 'Layout' });
+    expect(group.textContent).toContain('Reset layout');
+    expect(within(group).getByText('Layout').getAttribute('data-menubar')).toBe('group-label');
   });
 
   it('Escape closes the menu and puts focus back on its title', async () => {

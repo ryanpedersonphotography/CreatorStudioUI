@@ -83,15 +83,36 @@ colours are CSS system colours, which follow `color-scheme`, so the bar renders 
 | `--menubar-motion` | title highlight transition | `120ms` |
 | `--menubar-z` | menu stacking | `50` |
 
-Menus cap their height at Radix's `--radix-menubar-content-available-height` and scroll.
+Menus cap their height at the space Radix measures below the title
+(`--radix-menubar-content-available-height`, set on the open menu itself; `80vh` when nothing sets
+it) and scroll inside that.
 
 ## Taking it out of this repo
 
+The runtime is four files: `src/index.ts`, `src/lib/menubar.tsx`, `src/lib/shortcuts.ts`,
+`src/lib/menubar.css`. Everything else in the folder (config, specs, stories) is wired to this
+monorepo and is listed below so nothing is a surprise.
+
 1. Copy `packages/menubar/` somewhere; it ships as source (TSX + one CSS file, no build step).
-2. `pnpm add @radix-ui/react-menubar` beside React 19 and React DOM 19.
+2. `pnpm add @radix-ui/react-menubar` beside React 19 and React DOM 19. That is the only runtime
+   dependency; the manifest declares nothing else on purpose.
 3. Use a bundler that handles TSX and a CSS side-effect import, then
-   `import '@creator-studio/menubar/menubar.css'` (or the file path) once.
+   `import '@creator-studio/menubar/menubar.css'` (or the file path) once. Imports inside the
+   package use `.js` extensions on `.ts`/`.tsx` sources (`./lib/menubar.js`), the Node16 module
+   resolution this repo uses; a bundler or TypeScript with `moduleResolution: bundler` or `node16`
+   handles it, plain Node does not.
 4. Set the `--menubar-*` properties on `:root`, or accept the fallbacks.
-5. The specs run under this repo's shared Vitest setup (`tools/src/vitest/setup.ts`, a config path,
-   not an import): jsdom lacks `scrollIntoView` and pointer capture, which Radix calls. Bring those
-   four no-op stubs with the package, and `@testing-library/user-event` for the pointer flows.
+5. Replace the repo wiring, or drop the files that need it:
+   - `tsconfig.json`, `tsconfig.lib.json`, `tsconfig.spec.json` all `extends ../../tsconfig.base.json`
+     (strict, `jsx: react-jsx`, `module: nodenext`); inline those options or point at your own base.
+   - `vite.config.mts` names the shared test setup `../../tools/src/vitest/setup.ts` and uses
+     `@vitejs/plugin-react`; the setup stubs `scrollIntoView` and the three pointer-capture methods
+     on `Element.prototype`, which jsdom lacks and Radix calls. Bring those four no-op stubs.
+   - `eslint.config.mjs` extends the root config (`../../eslint.config.mjs`), which carries the
+     `kind:portable` boundary rule; outside this repo the rule has nothing to enforce, so any flat
+     config will do.
+   - The specs and stories need dev dependencies this repo hoists at the root: `vitest`, `jsdom`,
+     `@testing-library/react`, `@testing-library/user-event`, `@vitejs/plugin-react`, and
+     `@ladle/react` for the stories. Add them, or trash `*.spec.*` and `*.stories.*`.
+   - `src/lib/manifest.spec.ts` guards this repo's `@creator-studio/*` scope; keep it only if you
+     rename the scope it checks.

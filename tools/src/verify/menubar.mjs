@@ -33,6 +33,20 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const button = (name) => page.getByRole('button', { name, exact: true });
   const focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '');
   const state = (loc) => loc.getAttribute('data-state');
+  const contrast = (loc) =>
+    loc.evaluate((el) => {
+      const rgb = (color) => {
+        const g = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d');
+        g.fillStyle = color;
+        g.fillRect(0, 0, 1, 1);
+        return [...g.getImageData(0, 0, 1, 1).data].slice(0, 3);
+      };
+      const lum = (c) => c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)).reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
+      const cs = getComputedStyle(el);
+      const a = lum(rgb(cs.color));
+      const b = lum(rgb(cs.backgroundColor));
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background: cs.backgroundColor };
+    });
   const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const themeKey = () => page.evaluate(() => localStorage.getItem('cs:theme'));
   const outline = (loc) =>
@@ -80,6 +94,12 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   ok('the menu is painted: the :root contract reached the portal', bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent', bg);
   const zIndex = await menu().evaluate((m) => getComputedStyle(m).zIndex);
   ok('the menu stacks above a focused separator (z-index ≥ 50)', Number(zIndex) >= 50, zIndex);
+  const maxH = await menu().evaluate((m) => parseFloat(getComputedStyle(m).maxHeight));
+  ok(
+    'the menu caps its height at the space Radix measured under the title, not the 80vh fallback',
+    maxH > mb.height - 1 && maxH <= 982 - mb.y + 2 && Math.abs(maxH - 0.8 * 982) > 4,
+    `max-height ${maxH}px, menu top ${Math.round(mb.y)}, fallback would be ${0.8 * 982}px`,
+  );
 
   // 3 — hover-switch, click-to-close, Escape, outside click, loop, focus ring
   await trigger('File').hover();
@@ -106,6 +126,10 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const ringOn = await focusedLabel();
   const ring = await outline(page.locator('#top [role="menuitem"]:focus'));
   ok('Tab into the bar lands on a title and paints a focus ring', ['File', 'Edit', 'View'].includes(ringOn) && ring.style !== 'none' && ring.width >= 1, `${ringOn}: ${ring.style} ${ring.width}px`);
+  await page.keyboard.press('Tab');
+  const afterTag = await page.evaluate(() => document.activeElement?.tagName);
+  const afterLabel = (await focusedLabel()).trim();
+  ok('Tab again leaves the bar for a region toggle: one tab stop for the whole bar', afterTag === 'BUTTON' && ['Navigation', 'Context shelf', 'Inspector', 'Top shelf'].includes(afterLabel), `${afterTag} ${afterLabel}`);
 
   // 4 — View's check items are the regions; the gutter shows the state; the ⌃⌘ shortcuts work
   await openView();
@@ -157,6 +181,8 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await menu().waitFor({ state: 'visible' });
   await sleep(150);
   ok('ArrowDown opens View with the first item highlighted', (await nav().getAttribute('data-highlighted')) !== null);
+  const lightRow = await contrast(nav());
+  ok('light theme: the highlighted row clears AA (≥ 4.5:1)', lightRow.ratio >= 4.5, `${lightRow.ratio.toFixed(2)}:1, ${lightRow.color} on ${lightRow.background}`);
   ok('Inspector is checked before the typeahead, so its text starts with the mark', (await item('Inspector').getAttribute('aria-checked')) === 'true');
   await page.keyboard.press('i');
   await sleep(150);
@@ -172,11 +198,11 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await menu().waitFor({ state: 'visible' });
   const seam = item('New manuscript…');
   ok('File › New manuscript… is a disabled seam', (await seam.getAttribute('data-disabled')) !== null && (await seam.getAttribute('aria-disabled')) === 'true');
-  const sb = await box(seam);
   const navBefore = await width('#nav');
-  await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
+  await seam.dispatchEvent('click'); // the row has pointer-events: none, so a pointer click would land on the menu behind it and prove nothing
   await sleep(200);
-  ok('clicking it leaves the menu open and moves nothing', (await state(trigger('File'))) === 'open' && (await menus().count()) === 1 && (await width('#nav')) === navBefore);
+  ok('a click on the row itself leaves the menu open and moves nothing', (await state(trigger('File'))) === 'open' && (await menus().count()) === 1 && (await width('#nav')) === navBefore);
+  ok('and its heading says why it is dimmed', (await menu().getByText('Coming soon', { exact: true }).count()) === 1);
   await closeAll();
 
   // 7 — theme: chosen from a submenu, stamped on <html>, remembered across a reload; Escape closes one level
@@ -198,6 +224,13 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await page.reload({ waitUntil: 'networkidle' });
   await sleep(300);
   ok('the theme survives a reload, from the cs:theme key', (await theme()) === 'dark' && (await themeKey()) === 'dark');
+  await trigger('View').focus();
+  await page.keyboard.press('ArrowDown');
+  await menu().waitFor({ state: 'visible' });
+  await sleep(100);
+  const darkRow = await contrast(nav());
+  ok('dark theme: the highlighted row clears AA (≥ 4.5:1)', darkRow.ratio >= 4.5, `${darkRow.ratio.toFixed(2)}:1, ${darkRow.color} on ${darkRow.background}`);
+  await closeAll();
   await openView();
   await item('Theme').click();
   await page.locator('[role="menu"][data-menubar-sub]').waitFor({ state: 'visible' });
@@ -229,6 +262,8 @@ export async function run({ page, ok, sleep, errors, BASE }) {
     const dragged = await width('#nav');
     const bodyWidth = await width('#body');
     ok('the nav is dragged well off its default and the inspector is railed', dragged > 0.2 * bodyWidth + 100 && (await width('#inspector')) === 48, `${dragged}px of ${bodyWidth}`);
+    const draggedLayout = await page.evaluate(() => localStorage.getItem('cs:layout:default:body'));
+    ok('the drag was stored under the body layout key', typeof draggedLayout === 'string' && draggedLayout.length > 0);
     await openView();
     await item('Reset layout').click();
     await page.waitForLoadState('networkidle');
@@ -237,6 +272,8 @@ export async function run({ page, ok, sleep, errors, BASE }) {
     const leftover = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('cs:collapsed:default:')));
     ok('after Reset layout the nav is back at its default share and the inspector is open', Math.abs(reset - 0.2 * (await width('#body'))) <= 2 && (await width('#inspector')) > 100, `${reset}px`);
     ok('no collapsed bit survives the reset', leftover.length === 0, leftover.join(', '));
+    const layoutNow = await page.evaluate(() => localStorage.getItem('cs:layout:default:body'));
+    ok('the dragged layout is gone: what the fresh mount stored is not what the drag stored', layoutNow !== draggedLayout, `${layoutNow} vs ${draggedLayout}`);
     ok("the theme key is not the reset's to remove", (await themeKey()) === 'system');
   }
 

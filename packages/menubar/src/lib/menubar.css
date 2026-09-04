@@ -34,7 +34,6 @@
   --_mb-shadow: var(--menubar-shadow, 0 0.5rem 1.5rem rgb(0 0 0 / 0.18)); /* token-ok: portable contract; the rgb literal is the standalone fallback */
   --_mb-motion: var(--menubar-motion, 120ms); /* token-ok: portable contract */
   --_mb-z: var(--menubar-z, 50); /* token-ok: portable contract; above a focused panel separator */
-  --_mb-max-h: var(--radix-menubar-content-available-height, 80vh); /* token-ok: Radix sets this per open menu */
 }
 
 /* The bar */
@@ -83,7 +82,9 @@
   z-index: var(--_mb-z);
   box-sizing: border-box;
   min-width: var(--_mb-min-width);
-  max-height: var(--_mb-max-h);
+  /* Read here, not in the :root block: Radix sets this variable on the content element itself,
+     and a var() resolves where it is declared. 80vh is the standalone fallback. */
+  max-height: var(--radix-menubar-content-available-height, 80vh); /* token-ok: Radix sets this per open menu; the fallback is standalone */
   overflow: auto;
   padding: var(--_mb-pad-y);
   background: var(--_mb-bg);
