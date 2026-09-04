@@ -154,6 +154,15 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const afterTag = await page.evaluate(() => document.activeElement?.tagName);
   const afterLabel = (await focusedLabel()).trim();
   ok('Tab again leaves the bar for a region toggle: one tab stop for the whole bar', afterTag === 'BUTTON' && ['Navigation', 'Context shelf', 'Inspector', 'Top shelf'].includes(afterLabel), `${afterTag} ${afterLabel}`);
+  const chipRing = await page.locator('#top button:focus').evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), offset: parseFloat(cs.outlineOffset), border: `${cs.borderTopWidth} ${cs.borderTopStyle}`, pressed: el.getAttribute('aria-pressed') };
+  });
+  ok(
+    'the focused toggle paints the ring outside its border, so a pressed outline stays visible under focus',
+    chipRing.style !== 'none' && chipRing.width >= 1 && chipRing.offset >= 0 && chipRing.border === '1px solid' && chipRing.pressed === 'true',
+    `${chipRing.style} ${chipRing.width}px offset ${chipRing.offset}px, border ${chipRing.border}, pressed ${chipRing.pressed}`,
+  );
 
   // 4 — View's check items are the regions; the gutter shows the state; the ⌃⌘ shortcuts work
   await openView();

@@ -1,7 +1,7 @@
 import type { LayoutStore, PreferenceStore } from '@creator-studio/contracts';
 import { useCockpitRegion } from '@creator-studio/shell';
 import { StudioMenus } from './studio-menus.js';
-import { LANDMARK_FOCUS, REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
+import { CONTROL_FOCUS, LANDMARK_FOCUS, REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
 
 export interface StudioToolbarProps {
   /** The composition root's store: layout keys for Reset layout, the theme key for Theme. */
@@ -39,7 +39,7 @@ function RegionButton({ region }: { region: StudioRegion }) {
       type="button"
       aria-pressed={!toggle.collapsed}
       onClick={toggle.toggle}
-      className={`rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:border-ink aria-pressed:bg-surface-muted aria-pressed:text-ink ${LANDMARK_FOCUS}`}
+      className={`rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:border-ink aria-pressed:bg-surface-muted aria-pressed:text-ink ${CONTROL_FOCUS}`}
     >
       {REGION_TITLES[region]}
     </button>
