@@ -56,15 +56,20 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   as a collapse made the squeeze permanent (reviewer D). The rule tightened again under reviewer F:
   a user layout change (drag, separator key, double-click reset) records **only a reopen**, never a
   collapse. A collapse reached that way is either a panel's own drag — sizing, not a deliberate hide
-  — or a *neighbour's* growth railing this panel on a narrow window (a nav reset at 760px wide rails
+  — or a *neighbour's* growth railing this panel on a narrow window (a nav reset at 600px wide rails
   the inspector); recording the neighbour's squeeze as intent made a panel the user never touched a
-  permanent rail. Only the toolbar toggle (`collapse()`) records a hide. The cost, recorded as a
-  decision: a sidebar dragged shut (rather than toggled) is not remembered across a reload, so it
-  reopens at its minimum. The stored share still degrades on a squeeze, same residual as before. The
-  library's `onlySaveAfterUserInteractions` would keep the share but stop saving toggle collapses,
-  which the bit would then have to restore on mount. Recorded as the door, not taken. The harness
-  seeds the clamp cases (§5b shelf at 740px tall, §5c nav at 900px wide), the squeeze (§1b) and the
-  collateral reset (§6a′ nav reset at 760px railing the inspector).
+  permanent rail. Only the toolbar toggle (`collapse()`) records a hide, and only when it acted — a
+  failed expand records nothing either, so a window-caused rail the user tried and failed to reopen
+  does not become permanent (reviewer G, F1a). The cost, recorded as a decision (Ryan's to overrule):
+  a layout the user *drags or keys* into — shutting a panel by dragging its edge or a neighbour's, or
+  arrow-keying a separator — is not remembered. On the next mount, at any window size including the
+  same one, the shut panel reopens at its minimum and the neighbour it made room for snaps back. Only
+  a control collapse persists. The door if that is too much: attribute a drag to the panel whose
+  separator the user held so its own drag-collapse records while a collateral squeeze does not — more
+  plumbing, not taken. The library's `onlySaveAfterUserInteractions` would keep the degraded share
+  but stop saving toggle collapses, which the bit would then have to restore on mount; also not
+  taken. The harness seeds the clamp cases (§5b shelf at 740px tall, §5c nav at 900px wide), the
+  squeeze (§1b) and the collateral reset (§6a′ nav reset at 600px railing the inspector).
 - **2026-09-04** — A control that unmounts itself on activation (a toolbar button that collapses the
   shelf it lives in; an expand button inside a rail) drops keyboard focus to the document. The preset
   wraps each toggle so that when focus was inside the region at the call, it moves to the new

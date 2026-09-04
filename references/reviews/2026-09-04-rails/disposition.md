@@ -14,7 +14,8 @@ against the dev server; an opus re-review of each fix diff. Briefs and reports s
 | D (opus) | `brief-d-rereview.md` — the second fix diff (`709252e`), and the AGENTS.md headless rule from `ad71d78` | `reviewer-d-rereview.md` |
 | E (opus) | `brief-e-rereview.md` — the third fix diff (`b8c732e`), and the rewritten AGENTS.md rule | `reviewer-e-rereview.md` |
 | F (opus) | `brief-f-rereview.md` — the fourth fix diff (`0671daa`) | `reviewer-f-rereview.md` |
-| G (opus) | `brief-g-rereview.md` — the fifth fix diff | `reviewer-g-rereview.md` |
+| G (opus) | `brief-g-rereview.md` — the fifth fix diff (`53cb769`) | `reviewer-g-rereview.md` |
+| H (opus) | `brief-h-rereview.md` — the sixth fix diff | `reviewer-h-rereview.md` |
 
 ## Reviewer A
 
@@ -127,6 +128,32 @@ the nav separator: inspector rails to 48 and its bit is written `1`, surviving a
 - `node tools/src/verify/cockpit.mjs` → 70 passed, 0 failed (dev server); `--preview` → 70 passed, 0 failed.
 - Collateral re-probe (session): squeeze 600 → dblclick nav sep → inspector rails 48, bits `0--` (inspector unwritten); wide reload → inspector 200px open.
 
+## Reviewer G (re-review of `53cb769`)
+
+Four material findings. G reproduced each against the dev server, and mutation-tested the harness by
+serving the pre-fix commit `0671daa` from a scratch clone.
+
+| # | Finding | Disposition |
+|---|---|---|
+| F1a | **Material.** `expand()` ended with `!sync(true)`, and `sync(true)` wrote `isCollapsed()`. When the group had no slack the expand could not act, the panel stayed a rail, and the hook recorded bit `1` — a hide the user never made, on a window-caused rail. The mount reconcile then honoured it forever. D1's failure through a failed reopen. | **Fixed.** The write rule moved out of `sync` (which now only mirrors state) into each action: `collapse()` writes `true` only when it acted; `expand()` and `onUserLayout` write `false` only when they acted; nothing writes on the mount, a bare `onResize`, or a call with no slack. Measured at 560px: a failed "Expand navigation" leaves bits `---` (was `1--`), and a wide reload reopens the nav at 160px, pressed. |
+| F1b | **Material.** The §6a′ regression test ran at 760px, where the nav reset rails nothing, so both assertions passed vacuously — G showed they pass identically on the pre-fix commit. The collateral rail reproduces at 600px. | **Fixed.** §6a′ runs at 600px. G's mutation table: at 600, pre-fix `0671daa` fails both assertions (inspector bit `1`, stays railed on reload), HEAD passes (bit unwritten, reopens at 200). The friction note's two "760px" references corrected to 600. |
+| F1c | **Material.** The recorded cost understated itself: a drag- or key-built layout that shuts a panel is not remembered, and the neighbour it widened snaps back — at any window size, including the same one, not only across a resize. Keyboard collapse is in the same class and was unnamed. | **Recorded accurately.** The hook header, the friction note and this row now state the full cost: only a control (toolbar) collapse persists; a panel dragged or keyed shut reopens at its minimum on the next mount and its neighbour snaps back, at any size. Flagged to Ryan as the decision he may overrule (with B6). The attribution alternative is written up as the door. |
+| F1d | **Material.** The hook's contract header still documented the rule F1 deleted ("a released drag … records a collapse"). | **Fixed.** The header now states the actual rule and the accepted cost. |
+| F5 | **Minor.** The AGENTS.md rewrap moved the 128-char overflow onto line 103 rather than removing it. | **Fixed.** The `Dev servers…` block is re-flowed; longest line 100. |
+| F2a | **Minor.** The watcher held a single timer id, so two double-clicks in one task leaked the first; and F2 had no test. | **Fixed.** The watcher holds a `Set` of pending timer ids and clears all on cleanup. (No unit test: the leak needs two synthetic dispatches in one task, which jsdom's timer model does not model faithfully; the fix is inspected.) |
+| G (clean) | The whole intent story (toolbar collapse survives a same-size reload; a squeeze writes nothing; a collateral drag records nothing and reopens); no bit-`1`-while-open contradiction; F3 and F4 mutation-tested red on revert; scope ten files. | Named checks, several mutation-tested by G; the session re-measured F1a and the 600px collateral case. |
+
+G noted one process slip on its own side: it used `rm -rf` on its `/tmp` scratch directory before
+switching to `trash`. Outside the repo, but against the standing rule; recorded here because the rule
+has no exception.
+
+## Evidence (run by the session, 2026-09-04, after the G fixes)
+
+- `pnpm nx run-many -t typecheck lint test --skip-nx-cache` → exit 0, 17 tasks across 6 projects; 52 unit tests.
+- `pnpm verify` → exit 0 (typecheck, lint, token lint, test, stories, build, harness on the built bundle).
+- `node tools/src/verify/cockpit.mjs` → 70 passed, 0 failed (dev server); `--preview` → 70 passed, 0 failed.
+- F1a probe (session): at 560px a failed "Expand navigation" leaves bits `---`; wide reload → nav 160px, pressed.
+
 ## Re-review
 
-Reviewer G: pending at the time of writing; findings and disposition appended when it returns.
+Reviewer H: pending at the time of writing; findings and disposition appended when it returns.

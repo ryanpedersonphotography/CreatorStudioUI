@@ -100,10 +100,10 @@ an agent's own reading of necessity is never one.** `playwright-cli` is on PATH 
 headless. The bans below are examples of that rule, not its extent; an unlisted headed path is still
 forbidden: `--headed`, `attach` to the user's Chrome, `playwright-cli show` (the dashboard window,
 with or without `--annotate`), `npx playwright open`, `codegen`, `playwright test --ui` / `--debug` /
-`PWDEBUG=1`, `show-report`, `show-trace`, and a computer-use tool. Dev servers are the other leak: Ladle's `serve` and `preview`
-open a tab in the default browser unless `.ladle/vite.config.mts` says `open: false` (it does; keep
-it), and any agent that starts a server exports `BROWSER=none` first. Brief reviewers and subagents
-the same way. Every visual claim names its PNG path.
+`PWDEBUG=1`, `show-report`, `show-trace`, and a computer-use tool. Dev servers are the other leak:
+Ladle's `serve` and `preview` open a tab in the default browser unless `.ladle/vite.config.mts` says
+`open: false` (it does; keep it), and any agent that starts a server exports `BROWSER=none` first.
+Brief reviewers and subagents the same way. Every visual claim names its PNG path.
 
 **Reviewed — judgment; cite the line when you flag it.** Composition over configuration: children and
 slots, compound components (`Card`, `Card.Header`, `Card.Body`), not boolean-prop piles. Headless

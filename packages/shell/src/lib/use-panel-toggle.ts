@@ -64,14 +64,19 @@ export interface PanelToggle {
  *   and report whether they acted instead of assuming.
  * - With a `memory`, the mount reads it before trusting the library: a panel
  *   that comes up collapsed while memory says the user left it open was
- *   clamped by the stored share's validation, and is reopened. Memory is
- *   written from intent only: collapse() and expand(), and a layout change the
- *   library attributes to the user (a released drag, a separator key), which
- *   the cockpit reports through `onUserLayout`. `onResize` never writes: it
- *   also fires for a window resize that squeezes a panel to its rail, and for
- *   the mount, and recording either as a collapse would make the squeeze
- *   permanent. Memory only ever reopens; it never collapses a panel the
- *   layout mounted open.
+ *   clamped by the stored share's validation, and is reopened. Only two things
+ *   write it. `collapse()` writes a hide, and only when it acted. Everything
+ *   else — `expand()`, and a layout change the library attributes to the user
+ *   (a released drag, a separator key, relayed as `onUserLayout`) — writes only
+ *   a reopen, and only when it acted: a change that left the panel open clears
+ *   any stale bit. Nothing writes on the mount, on a bare `onResize`, or on a
+ *   call that could not act. So a window squeeze, a failed expand, and a
+ *   collapse the user reached by dragging a *neighbour* all record nothing, and
+ *   the mount reconcile reopens them. The recorded cost: a panel the user
+ *   *drags or keys* shut (rather than collapsing through its control) is not
+ *   remembered, so it reopens at its minimum on the next mount, and the
+ *   neighbour it made room for snaps back — at any window size. A control
+ *   collapse is the only hide that persists.
  */
 export function usePanelToggle(restoreSize?: PanelLength, memory?: CollapsedMemory): PanelToggle {
   const [handle, setHandle] = usePanelCallbackRef();
@@ -82,20 +87,17 @@ export function usePanelToggle(restoreSize?: PanelLength, memory?: CollapsedMemo
   const collapsedByUs = useRef(false);
 
   /**
-   * Read the panel and mirror it into state; returns whether it is collapsed.
-   * `record` writes the state to memory: true for a transition the user made.
+   * Mirror the panel into component state; returns whether it is collapsed.
+   * Never writes memory: recording is each action's own decision, so a call
+   * that did not act (no slack, a window squeeze, the mount) records nothing.
    */
-  const sync = useCallback(
-    (record: boolean): boolean => {
-      const next = handle?.isCollapsed();
-      if (next === undefined) return false;
-      if (!next) collapsedByUs.current = false;
-      if (record) memory?.write(next);
-      setCollapsed(next);
-      return next;
-    },
-    [handle, memory],
-  );
+  const sync = useCallback((): boolean => {
+    const next = handle?.isCollapsed();
+    if (next === undefined) return false;
+    if (!next) collapsedByUs.current = false;
+    setCollapsed(next);
+    return next;
+  }, [handle]);
 
   // The effect catches the handle attaching, so a layout restored collapsed
   // shows the right state on mount; onResize catches the user dragging it shut.
@@ -104,43 +106,47 @@ export function usePanelToggle(restoreSize?: PanelLength, memory?: CollapsedMemo
     // A collapse that already came through collapse() (a child's effect runs
     // before this one) is intent, not a clamp. expand() with nothing recorded
     // lands on the panel's minimum: the nearest open size to a share that was
-    // clamped for falling under the collapse midpoint.
+    // clamped for falling under the collapse midpoint. The mount records
+    // nothing either way.
     if (memory && handle.isCollapsed() && !collapsedByUs.current && memory.read() !== true) handle.expand();
-    sync(false);
+    sync();
   }, [handle, memory, sync]);
 
-  // Size changes of any origin: state only. The cockpit reports the user's own
-  // layout changes separately, and those are what memory records.
-  const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(false), [sync]);
+  // Size changes of any origin: state only, never a write.
+  const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(), [sync]);
   // A user layout change (a released drag, a separator key, a double-click reset)
   // records only when it left this panel open: a reopen, which clears a stale
   // collapsed bit. A collapse reached this way is not intent — it is either this
-  // panel's own drag, which is sizing rather than a deliberate hide, or a
-  // neighbour's growth squeezing this one to its rail on a narrow window, which
-  // is the window's doing, not the user's. Recording either as a collapse made
-  // it survive the next mount as a rail the user never asked for. Deliberate
-  // hides come through collapse(); only they set the bit.
+  // panel's own drag (sizing, not a deliberate hide) or a neighbour's growth
+  // squeezing this one to its rail on a narrow window (the window's doing). Only
+  // collapse() records a hide.
   const onUserLayout = useCallback(() => {
-    if (handle) void sync(!handle.isCollapsed());
-  }, [handle, sync]);
+    if (handle && !sync()) memory?.write(false);
+  }, [handle, sync, memory]);
 
   const collapse = useCallback((): boolean => {
     if (!handle || handle.isCollapsed()) return false;
     collapsedByUs.current = true;
     handle.collapse();
-    const collapsed = sync(true);
-    if (!collapsed) collapsedByUs.current = false;
+    const collapsed = sync();
+    // Record the hide only when it acted; a collapse with no slack changed
+    // nothing and must not leave a bit the mount would honour.
+    if (collapsed) memory?.write(true);
+    else collapsedByUs.current = false;
     return collapsed;
-  }, [handle, sync]);
+  }, [handle, sync, memory]);
 
   const expand = useCallback((): boolean => {
     if (!handle?.isCollapsed()) return false;
     if (collapsedByUs.current || restoreSize === undefined) handle.expand();
     else handle.resize(restoreSize);
-    // sync() clears collapsedByUs itself once the panel is seen open; an expand()
-    // that could not act keeps the memory for the next attempt.
-    return !sync(true);
-  }, [handle, restoreSize, sync]);
+    const collapsed = sync();
+    // Record the reopen only when it acted. An expand with no slack leaves the
+    // panel a rail; writing a bit there would record a hide the user never made
+    // and make a window-caused rail permanent (reviewer G, F1a).
+    if (!collapsed) memory?.write(false);
+    return !collapsed;
+  }, [handle, restoreSize, sync, memory]);
 
   const toggle = useCallback((): boolean => {
     if (!handle) return false;

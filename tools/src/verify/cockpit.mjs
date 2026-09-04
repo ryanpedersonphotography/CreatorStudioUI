@@ -299,7 +299,7 @@ await fresh();
 // steals space from the inspector and rails it; that squeeze must not be recorded as the user
 // hiding the inspector, and a wide reload must bring the inspector back.
 {
-  const narrow = await browser.newContext({ viewport: { width: 760, height: 900 } });
+  const narrow = await browser.newContext({ viewport: { width: 600, height: 900 } });
   const p2 = await narrow.newPage();
   await p2.goto(BASE, { waitUntil: 'networkidle' });
   await p2.evaluate(() => localStorage.clear());
