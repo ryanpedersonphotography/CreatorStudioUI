@@ -16,8 +16,10 @@ export interface StudioMenusProps {
 /**
  * The studio's menu bar: File · Edit · View. View is real; File and Edit are
  * the seams the Write milestone fills, present and disabled so the shape is
- * visible without promising a shortcut, with a "Coming soon" heading so the
- * dimming is explained to anyone who opens them. Every dropdown carries
+ * visible without promising a shortcut, grouped under a "Coming soon" heading
+ * so the dimming is explained to anyone who opens them. With every item
+ * disabled nothing in these menus is focusable, so the heading is a sighted
+ * affordance until a real item lands (then the group name is announced too). Every dropdown carries
  * `data-region="top"` so the focus handoff knows a menu item belongs to the top
  * shelf though it renders in a body portal.
  */
@@ -27,20 +29,22 @@ export function StudioMenus({ store, projectId }: StudioMenusProps) {
   return (
     <Menubar aria-label="Studio menu">
       <Menubar.Menu label="File" data-region="top">
-        <Menubar.Label>Coming soon</Menubar.Label>
-        <Menubar.Item disabled>New manuscript…</Menubar.Item>
-        <Menubar.Item disabled>Open project…</Menubar.Item>
-        <Menubar.Separator />
-        <Menubar.Item disabled>Save</Menubar.Item>
+        <Menubar.Group label="Coming soon">
+          <Menubar.Item disabled>New manuscript…</Menubar.Item>
+          <Menubar.Item disabled>Open project…</Menubar.Item>
+          <Menubar.Separator />
+          <Menubar.Item disabled>Save</Menubar.Item>
+        </Menubar.Group>
       </Menubar.Menu>
       <Menubar.Menu label="Edit" data-region="top">
-        <Menubar.Label>Coming soon</Menubar.Label>
-        <Menubar.Item disabled>Undo</Menubar.Item>
-        <Menubar.Item disabled>Redo</Menubar.Item>
-        <Menubar.Separator />
-        <Menubar.Item disabled>Cut</Menubar.Item>
-        <Menubar.Item disabled>Copy</Menubar.Item>
-        <Menubar.Item disabled>Paste</Menubar.Item>
+        <Menubar.Group label="Coming soon">
+          <Menubar.Item disabled>Undo</Menubar.Item>
+          <Menubar.Item disabled>Redo</Menubar.Item>
+          <Menubar.Separator />
+          <Menubar.Item disabled>Cut</Menubar.Item>
+          <Menubar.Item disabled>Copy</Menubar.Item>
+          <Menubar.Item disabled>Paste</Menubar.Item>
+        </Menubar.Group>
       </Menubar.Menu>
       <Menubar.Menu label="View" data-region="top">
         {VIEW_ORDER.map((id) => {

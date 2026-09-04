@@ -44,10 +44,12 @@ function Bar() {
 - `Menubar.Menu` — one title (`label`, any ReactNode) and its dropdown. Extra props land on the
   dropdown, which is how a consumer tags it (`data-region="top"`).
 - `Menubar.Item`, `Menubar.CheckItem`, `Menubar.RadioGroup` + `Menubar.RadioItem`,
-  `Menubar.Sub`, `Menubar.Separator`, `Menubar.Label`, `Menubar.Group` — Radix's parts. Every
-  item reserves an indicator gutter so labels align; a `shortcut` prints right-aligned
-  (`aria-hidden`) and sets `aria-keyshortcuts`; `textValue` defaults to a string label so
-  typeahead ignores the mark and the shortcut.
+  `Menubar.Sub`, `Menubar.Separator` — Radix's parts. Every item reserves an indicator gutter so
+  labels align; a `shortcut` prints right-aligned (`aria-hidden`) and sets `aria-keyshortcuts`;
+  `textValue` defaults to a string label so typeahead ignores the mark and the shortcut.
+- `Menubar.Group` — groups items; pass `label` and the group is announced by that heading
+  (`aria-labelledby`). `Menubar.Label` on its own is a visible heading with no ARIA role, by
+  Radix's design, so use the group's `label` when the heading should reach assistive tech.
 - `useShortcuts(bindings)` — one window `keydown` listener for the component's lifetime. A binding
   is `{ shortcut, run, when?, global? }`; it does not fire inside a text field unless `global`.
 - `formatShortcut`, `serializeShortcut`, `matchesShortcut` — the helpers behind the above.

@@ -73,8 +73,9 @@ export interface ShortcutBinding {
   run: () => void;
   /**
    * An extra guard, checked at the keystroke: "only while this region is open".
-   * A binding whose guard says no is skipped, so two bindings may share a
-   * combination and the first whose guard passes runs.
+   * A binding whose guard says no is skipped, as is a non-global binding while
+   * the user is typing, so two bindings may share a combination and the first
+   * whose guards pass runs.
    */
   when?: () => boolean;
   /**
@@ -113,7 +114,7 @@ export function useShortcuts(bindings: readonly ShortcutBinding[]): void {
       const editable = isEditable(event.target);
       for (const binding of latest.current) {
         if (!matchesShortcut(event, binding.shortcut)) continue;
-        if (editable && !binding.global) return;
+        if (editable && !binding.global) continue;
         if (binding.when && !binding.when()) continue;
         event.preventDefault();
         binding.run();

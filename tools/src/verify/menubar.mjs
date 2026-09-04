@@ -43,9 +43,15 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       };
       const lum = (c) => c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)).reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
       const cs = getComputedStyle(el);
+      let node = el;
+      let background = cs.backgroundColor;
+      while (node && (background === 'rgba(0, 0, 0, 0)' || background === 'transparent')) {
+        node = node.parentElement;
+        background = node ? getComputedStyle(node).backgroundColor : 'rgb(255, 255, 255)';
+      }
       const a = lum(rgb(cs.color));
-      const b = lum(rgb(cs.backgroundColor));
-      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background: cs.backgroundColor };
+      const b = lum(rgb(background));
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background };
     });
   const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const themeKey = () => page.evaluate(() => localStorage.getItem('cs:theme'));
@@ -183,6 +189,9 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   ok('ArrowDown opens View with the first item highlighted', (await nav().getAttribute('data-highlighted')) !== null);
   const lightRow = await contrast(nav());
   ok('light theme: the highlighted row clears AA (≥ 4.5:1)', lightRow.ratio >= 4.5, `${lightRow.ratio.toFixed(2)}:1, ${lightRow.color} on ${lightRow.background}`);
+  const shortcutOf = (name) => item(name).locator('[data-menubar="shortcut"]');
+  const lightHint = await contrast(shortcutOf('Context shelf'));
+  ok('light theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && lightHint.ratio >= 4.5, `${lightHint.ratio.toFixed(2)}:1, ${lightHint.color} on ${lightHint.background}`);
   ok('Inspector is checked before the typeahead, so its text starts with the mark', (await item('Inspector').getAttribute('aria-checked')) === 'true');
   await page.keyboard.press('i');
   await sleep(150);
@@ -202,7 +211,10 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await seam.dispatchEvent('click'); // the row has pointer-events: none, so a pointer click would land on the menu behind it and prove nothing
   await sleep(200);
   ok('a click on the row itself leaves the menu open and moves nothing', (await state(trigger('File'))) === 'open' && (await menus().count()) === 1 && (await width('#nav')) === navBefore);
-  ok('and its heading says why it is dimmed', (await menu().getByText('Coming soon', { exact: true }).count()) === 1);
+  const heading = () => menu().getByText('Coming soon', { exact: true });
+  ok('and its heading says why it is dimmed, naming the group', (await heading().count()) === 1 && (await menu().getByRole('group', { name: 'Coming soon' }).count()) === 1);
+  const lightHeading = await contrast(heading());
+  ok('light theme: the muted heading clears AA (≥ 4.5:1)', lightHeading.ratio >= 4.5, `${lightHeading.ratio.toFixed(2)}:1, ${lightHeading.color} on ${lightHeading.background}`);
   await closeAll();
 
   // 7 — theme: chosen from a submenu, stamped on <html>, remembered across a reload; Escape closes one level
@@ -229,7 +241,16 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await menu().waitFor({ state: 'visible' });
   await sleep(100);
   const darkRow = await contrast(nav());
-  ok('dark theme: the highlighted row clears AA (≥ 4.5:1)', darkRow.ratio >= 4.5, `${darkRow.ratio.toFixed(2)}:1, ${darkRow.color} on ${darkRow.background}`);
+  ok('dark theme: the highlighted row clears AA (≥ 4.5:1)', (await nav().getAttribute('data-highlighted')) !== null && darkRow.ratio >= 4.5, `${darkRow.ratio.toFixed(2)}:1, ${darkRow.color} on ${darkRow.background}`);
+  const darkHint = await contrast(shortcutOf('Context shelf'));
+  ok('dark theme: the muted shortcut on an enabled row clears AA (≥ 4.5:1)', (await item('Context shelf').getAttribute('data-highlighted')) === null && darkHint.ratio >= 4.5, `${darkHint.ratio.toFixed(2)}:1, ${darkHint.color} on ${darkHint.background}`);
+  await closeAll();
+  await trigger('File').focus();
+  await page.keyboard.press('ArrowDown');
+  await menu().waitFor({ state: 'visible' });
+  await sleep(100);
+  const darkHeading = await contrast(heading());
+  ok('dark theme: the muted heading clears AA (≥ 4.5:1)', darkHeading.ratio >= 4.5, `${darkHeading.ratio.toFixed(2)}:1, ${darkHeading.color} on ${darkHeading.background}`);
   await closeAll();
   await openView();
   await item('Theme').click();

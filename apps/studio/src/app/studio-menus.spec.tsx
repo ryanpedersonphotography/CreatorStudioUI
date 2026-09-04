@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Cockpit, type CockpitPanelBinding, type CockpitRegionMap, type PanelToggle } from '@creator-studio/shell';
@@ -35,8 +35,12 @@ describe('StudioMenus', () => {
     const { user } = setup();
     expect(screen.getAllByRole('menuitem').map((el) => el.textContent)).toEqual(['File', 'Edit', 'View']);
     await user.click(screen.getByRole('menuitem', { name: 'File' }));
-    const items = await screen.findAllByRole('menuitem', { name: /manuscript|project|Save/ });
+    const menu = await screen.findByRole('menu');
+    const group = within(menu).getByRole('group', { name: 'Coming soon' });
+    const items = within(group).getAllByRole('menuitem');
+    expect(items.map((el) => el.textContent)).toEqual(['New manuscript…', 'Open project…', 'Save']);
     expect(items.map((el) => el.getAttribute('aria-disabled'))).toEqual(['true', 'true', 'true']);
+    expect(within(menu).getByText('Coming soon').getAttribute('role')).toBeNull();
   });
 
   it("View's check items mirror the regions, in VS Code's order, each with its shortcut", async () => {

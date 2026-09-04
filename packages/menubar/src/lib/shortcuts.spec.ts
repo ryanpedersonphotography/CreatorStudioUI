@@ -89,6 +89,18 @@ describe('useShortcuts', () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it('a non-global binding yields to a global one on the same keys while the user is typing', () => {
+    const local = vi.fn();
+    const global = vi.fn();
+    const textarea = document.body.appendChild(document.createElement('textarea'));
+    renderHook(() => useShortcuts([{ shortcut: ctrlMetaB, run: local }, { shortcut: ctrlMetaB, run: global, global: true }]));
+    const event = keydown({ key: 'b', ctrlKey: true, metaKey: true, target: textarea });
+    expect(local).not.toHaveBeenCalled();
+    expect(global).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    textarea.remove();
+  });
+
   it('a binding whose guard says no yields to a later one on the same keys', () => {
     const editor = vi.fn();
     const elsewhere = vi.fn();

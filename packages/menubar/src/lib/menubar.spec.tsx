@@ -77,6 +77,28 @@ describe('Menubar', () => {
     expect(within(group).getByText('Layout').getAttribute('data-menubar')).toBe('group-label');
   });
 
+  it('a Group without a label is a plain group, and a Label on its own is a heading with no role', async () => {
+    const { user, trigger } = setup(
+      <Menubar aria-label="Bare">
+        <Menubar.Menu label="Bare">
+          <Menubar.Label>Hint</Menubar.Label>
+          <Menubar.Group>
+            <Menubar.Item>Only item</Menubar.Item>
+          </Menubar.Group>
+        </Menubar.Menu>
+      </Menubar>,
+    );
+    await user.click(trigger('Bare'));
+    const menu = await screen.findByRole('menu');
+    const group = within(menu).getByRole('group');
+    expect(group.getAttribute('aria-labelledby')).toBeNull();
+    expect(within(group).queryByText('Hint')).toBeNull();
+    const hint = within(menu).getByText('Hint');
+    expect(hint.getAttribute('role')).toBeNull();
+    expect(hint.getAttribute('data-menubar')).toBe('group-label');
+    expect(within(menu).getAllByRole('menuitem').map((el) => el.textContent)).toEqual(['Only item']);
+  });
+
   it('Escape closes the menu and puts focus back on its title', async () => {
     const { user, trigger } = setup();
     await user.click(trigger('View'));

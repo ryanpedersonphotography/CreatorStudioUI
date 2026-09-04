@@ -56,7 +56,7 @@ export const Standalone: Story = () => (
   </Menubar>
 );
 
-/** Every part at once, opened on load: gutter alignment with one item checked, a submenu row, a label and group. */
+/** Every part at once, opened on load: gutter alignment with one item checked, a submenu row, a labelled group and a bare heading. */
 export const Matrix: Story = () => (
   <Menubar aria-label="Matrix menu" defaultValue="all">
     <Menubar.Menu label="All parts" value="all">
@@ -65,6 +65,7 @@ export const Matrix: Story = () => (
         <Menubar.Item disabled>Disabled item</Menubar.Item>
       </Menubar.Group>
       <Menubar.Separator />
+      <Menubar.Label>Bare heading</Menubar.Label>
       <Menubar.CheckItem checked shortcut={{ key: 'b', ctrl: true, meta: true }}>
         Checked
       </Menubar.CheckItem>
