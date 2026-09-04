@@ -227,9 +227,25 @@ describe('usePanelToggle', () => {
       expect(memory.write).toHaveBeenLastCalledWith(true);
     });
 
-    it('a reopen that could not act leaves memory alone, so the clamp is retried next mount', () => {
+    it('the mount reconcile leaves memory alone when it cannot act, so the clamp is retried next mount', () => {
       const memory = fakeMemory(false);
       const { result } = mount(cockpitSizes.navDefault, true, true, memory);
+      expect(result.current.collapsed).toBe(true);
+      expect(memory.write).not.toHaveBeenCalled();
+    });
+
+    it('a failed expand() records nothing, so a window-railed panel stays reopenable (F1a)', () => {
+      // The F1a scenario: the user left nav open, a narrow window clamped it to a
+      // rail, and there is no slack to reopen. A failed expand must not record a
+      // hide the user never made — that made the window-caused rail permanent.
+      const memory = fakeMemory(false);
+      const { result } = mount(cockpitSizes.navDefault, true, true, memory);
+      vi.mocked(memory.write).mockClear();
+      let acted = true;
+      act(() => {
+        acted = result.current.expand();
+      });
+      expect(acted).toBe(false);
       expect(result.current.collapsed).toBe(true);
       expect(memory.write).not.toHaveBeenCalled();
     });

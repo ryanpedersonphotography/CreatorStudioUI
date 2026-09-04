@@ -64,12 +64,12 @@ export interface PanelToggle {
  *   and report whether they acted instead of assuming.
  * - With a `memory`, the mount reads it before trusting the library: a panel
  *   that comes up collapsed while memory says the user left it open was
- *   clamped by the stored share's validation, and is reopened. Only two things
- *   write it. `collapse()` writes a hide, and only when it acted. Everything
- *   else — `expand()`, and a layout change the library attributes to the user
- *   (a released drag, a separator key, relayed as `onUserLayout`) — writes only
- *   a reopen, and only when it acted: a change that left the panel open clears
- *   any stale bit. Nothing writes on the mount, on a bare `onResize`, or on a
+ *   clamped by the stored share's validation, and is reopened. Two kinds of
+ *   write reach it, from three call sites. `collapse()` writes a hide, and only
+ *   when it acted. The other two — `expand()`, and a layout change the library
+ *   attributes to the user (a released drag, a separator key, relayed as
+ *   `onUserLayout`) — write only a reopen, and only when it acted: a change that
+ *   left the panel open clears any stale bit. Nothing writes on the mount, on a bare `onResize`, or on a
  *   call that could not act. So a window squeeze, a failed expand, and a
  *   collapse the user reached by dragging a *neighbour* all record nothing, and
  *   the mount reconcile reopens them. The recorded cost: a panel the user

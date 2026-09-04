@@ -321,6 +321,35 @@ await fresh();
 }
 await fresh();
 
+// 6a″ — a failed expand records nothing (reviewer G/H, F1a). On a window too narrow to reopen the
+// nav, the rail's "Expand navigation" control fires but the group has no slack, so it cannot act.
+// Recording a hide there made a window-caused rail permanent; the fix records only on success, so
+// the bit stays unset and a wide reload reopens the nav the user never chose to hide.
+{
+  const tight = await browser.newContext({ viewport: { width: 560, height: 900 } });
+  const pt = await tight.newPage();
+  await pt.goto(BASE, { waitUntil: 'networkidle' });
+  await pt.evaluate(() => localStorage.clear());
+  await pt.reload({ waitUntil: 'networkidle' });
+  await sleep(300);
+  const railed = Math.round((await pt.locator('#nav').boundingBox()).width);
+  const bitFresh = await pt.evaluate(() => localStorage.getItem('cs:collapsed:default:nav'));
+  ok('at 560px the nav mounts railed by the window, with no bit', railed <= 60 && bitFresh === null, `nav=${railed}px bit=${bitFresh}`);
+  await pt.getByRole('button', { name: 'Expand navigation', exact: true }).click();
+  await sleep(300);
+  const stillRailed = Math.round((await pt.locator('#nav').boundingBox()).width);
+  const bitAfter = await pt.evaluate(() => localStorage.getItem('cs:collapsed:default:nav'));
+  ok('an expand with no room to act leaves the rail and records no hide', stillRailed <= 60 && bitAfter === null, `nav=${stillRailed}px bit=${bitAfter}`);
+  await pt.setViewportSize({ width: 1440, height: 900 });
+  await sleep(300);
+  await pt.reload({ waitUntil: 'networkidle' });
+  await sleep(400);
+  const wide = Math.round((await pt.locator('#nav').boundingBox()).width);
+  ok('and a wide reload reopens the once-railed nav, pressed', wide >= 160 && (await pt.getByRole('button', { name: 'Navigation', exact: true }).getAttribute('aria-pressed')) === 'true', `${wide}px`);
+  await tight.close();
+}
+await fresh();
+
 // 6b — a rail can be dragged open, and the toolbar's expand then returns to that dragged width
 await button('Navigation').click();
 await sleep(300);

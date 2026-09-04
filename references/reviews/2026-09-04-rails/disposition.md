@@ -139,7 +139,7 @@ serving the pre-fix commit `0671daa` from a scratch clone.
 | F1b | **Material.** The §6a′ regression test ran at 760px, where the nav reset rails nothing, so both assertions passed vacuously — G showed they pass identically on the pre-fix commit. The collateral rail reproduces at 600px. | **Fixed.** §6a′ runs at 600px. G's mutation table: at 600, pre-fix `0671daa` fails both assertions (inspector bit `1`, stays railed on reload), HEAD passes (bit unwritten, reopens at 200). The friction note's two "760px" references corrected to 600. |
 | F1c | **Material.** The recorded cost understated itself: a drag- or key-built layout that shuts a panel is not remembered, and the neighbour it widened snaps back — at any window size, including the same one, not only across a resize. Keyboard collapse is in the same class and was unnamed. | **Recorded accurately.** The hook header, the friction note and this row now state the full cost: only a control (toolbar) collapse persists; a panel dragged or keyed shut reopens at its minimum on the next mount and its neighbour snaps back, at any size. Flagged to Ryan as the decision he may overrule (with B6). The attribution alternative is written up as the door. |
 | F1d | **Material.** The hook's contract header still documented the rule F1 deleted ("a released drag … records a collapse"). | **Fixed.** The header now states the actual rule and the accepted cost. |
-| F5 | **Minor.** The AGENTS.md rewrap moved the 128-char overflow onto line 103 rather than removing it. | **Fixed.** The `Dev servers…` block is re-flowed; longest line 100. |
+| F5 | **Minor.** The AGENTS.md rewrap moved the 128-char overflow onto line 103 rather than removing it. | **Fixed.** The `Dev servers…` block is re-flowed to the surrounding prose width; the 128-char overflow is gone. (AGENTS.md declares no column limit — its code blocks run past 180 — so no exact cap is claimed; reviewer H corrected an earlier "longest line 100" here that was off by one.) |
 | F2a | **Minor.** The watcher held a single timer id, so two double-clicks in one task leaked the first; and F2 had no test. | **Fixed.** The watcher holds a `Set` of pending timer ids and clears all on cleanup. (No unit test: the leak needs two synthetic dispatches in one task, which jsdom's timer model does not model faithfully; the fix is inspected.) |
 | G (clean) | The whole intent story (toolbar collapse survives a same-size reload; a squeeze writes nothing; a collateral drag records nothing and reopens); no bit-`1`-while-open contradiction; F3 and F4 mutation-tested red on revert; scope ten files. | Named checks, several mutation-tested by G; the session re-measured F1a and the 600px collateral case. |
 
@@ -154,6 +154,29 @@ has no exception.
 - `node tools/src/verify/cockpit.mjs` → 70 passed, 0 failed (dev server); `--preview` → 70 passed, 0 failed.
 - F1a probe (session): at 560px a failed "Expand navigation" leaves bits `---`; wide reload → nav 160px, pressed.
 
-## Re-review
+## Reviewer H (re-review of `6817730`)
 
-Reviewer H: pending at the time of writing; findings and disposition appended when it returns.
+H confirmed the F1a behaviour change is correct: it proved the full six-case state machine (mount ×
+memory × slack), found no bit-`1`-while-open or bit-`0`-while-collapsed contradiction across eleven
+window widths, mutation-tested F1b (760px vacuous, 600px discriminates), checked the F1c cost is
+stated in all three places, found F2a sound, ran the regression sweep green, and served the gate at
+exit 0 with the harness at 70. One material finding, two minor.
+
+| # | Finding | Disposition |
+|---|---|---|
+| H1 | **Material.** The F1a fix had no regression test. The unit test at `use-panel-toggle.spec.tsx:230` was named for a reopen but never called `expand()` — it only mounted a stuck panel — so it passed unchanged on the defective commit `53cb769` (H served it: 32 unit, 70 harness, both green). A fix nothing can turn red is not proven. | **Fixed.** Added a unit test that calls `act(() => result.current.expand())` on a stuck, collapsed handle with a memory and asserts `memory.write` was **not** called and the panel stayed collapsed; mutation-tested red on the F1a defect (`expected "vi.fn()" to not be called at all, but actually been called 1 times`). Added harness §6a″ at 560px: a fresh window-railed nav has no bit, a failed "Expand navigation" leaves the rail and writes no bit, and a wide reload reopens the nav at 160px pressed. Renamed the `:230` test to say it covers the mount reconcile, which is what it tests. |
+| H2 | **Minor.** The F5 disposition row claimed "longest line 100", but `AGENTS.md:102` is 101 chars, and AGENTS.md declares no column limit at all (its code blocks run past 180). | **Fixed.** The F5 row no longer claims an exact cap; it states the 128-char overflow is gone and that no width rule is declared. |
+| H3 | **Minor.** The hook header said "Only two things write it", which undercounts the three call sites that write memory (`collapse`, `expand`, `onUserLayout`). | **Fixed.** The header now reads "Two kinds of write reach it, from three call sites" — a hide (`collapse` only) and a reopen (`expand` and `onUserLayout`). |
+| H (clean) | The six-case state machine; no bit/panel contradiction across eleven widths; F1b mutation-tested (760 vacuous, 600 discriminates); F1c cost in three places; F2a sound; regression sweep green; gate exit 0; harness 70. | Named checks; the session added the missing tests H's material finding named and mutation-tested both red on the defect. |
+
+## Evidence (run by the session, 2026-09-04, after the H fixes)
+
+- `pnpm nx run-many -t typecheck lint test --skip-nx-cache` → exit 0, 17 tasks across 6 projects; 33 unit tests (22 in `use-panel-toggle.spec.tsx`).
+- `pnpm verify` → exit 0 (typecheck, lint, token lint, test, stories, build, harness on the built bundle at 73).
+- `node tools/src/verify/cockpit.mjs` → 73 passed, 0 failed (dev server); `--preview` → 73 passed, 0 failed.
+- Mutation citation (unit): reintroducing the F1a defect (`expand()` writing a hide when it could not act) turns exactly the new test red with `expected "vi.fn()" to not be called at all, but actually been called 1 times`; restored.
+- §6a″ by name: `at 560px the nav mounts railed by the window, with no bit — nav=47px bit=null`; `an expand with no room to act leaves the rail and records no hide — nav=47px bit=null`; `and a wide reload reopens the once-railed nav, pressed — 160px`.
+
+Two reviewers have now cleared the F1a fix: G raised it, H confirmed the behaviour correct and named
+the missing test, which this wave adds and mutation-tests. The gate is discharged; no further review
+pass on a test-only addition.
