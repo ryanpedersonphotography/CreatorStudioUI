@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 // Radix, not Ark: Ark UI has no menubar; the bar-level roving focus and hover-switch live here.
 import * as Radix from '@radix-ui/react-menubar';
 import { formatShortcut, serializeShortcut, type Shortcut, type ShortcutPlatform } from './shortcuts.js';
@@ -169,19 +169,40 @@ export interface MenubarSubProps extends Omit<ComponentPropsWithoutRef<typeof Ra
   textValue?: string;
 }
 
-/** A nested menu, opened from a row of its parent on hover, click, or ArrowRight. */
-export function MenubarSub({ label, children, disabled, textValue, ...content }: MenubarSubProps) {
+/**
+ * A nested menu, opened from a row of its parent on hover, click, or
+ * ArrowRight. Escape closes this level only and puts focus back on its row,
+ * as ArrowLeft does and as the APG menubar pattern says; Radix's default
+ * closes the whole bar from a submenu, so the open state is held here.
+ */
+export function MenubarSub({ label, children, disabled, textValue, onEscapeKeyDown, ...content }: MenubarSubProps) {
   const { portalContainer } = useContext(SettingsContext);
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLDivElement>(null);
   return (
-    <Radix.Sub>
-      <Radix.SubTrigger data-menubar="sub-trigger" disabled={disabled} textValue={textValue ?? textOf(label)}>
+    <Radix.Sub open={open} onOpenChange={setOpen}>
+      <Radix.SubTrigger ref={trigger} data-menubar="sub-trigger" disabled={disabled} textValue={textValue ?? textOf(label)}>
         <ItemBody>{label}</ItemBody>
         <span data-menubar="chevron" aria-hidden="true">
           ›
         </span>
       </Radix.SubTrigger>
       <Radix.Portal container={portalContainer ?? undefined}>
-        <Radix.SubContent data-menubar="content" data-menubar-sub="" sideOffset={0} alignOffset={0} loop {...content}>
+        <Radix.SubContent
+          data-menubar="content"
+          data-menubar-sub=""
+          sideOffset={0}
+          alignOffset={0}
+          loop
+          {...content}
+          onEscapeKeyDown={(event) => {
+            onEscapeKeyDown?.(event);
+            if (event.defaultPrevented) return;
+            event.preventDefault();
+            setOpen(false);
+            trigger.current?.focus();
+          }}
+        >
           {children}
         </Radix.SubContent>
       </Radix.Portal>

@@ -2,6 +2,45 @@
 
 Footguns and lessons that must survive between sessions. Add to the top; never delete.
 
+- **2026-09-04** — **Dated constraint: Reset layout reloads the page.** The panel library reads a
+  stored layout only at mount, so `View › Reset layout` removes this project's two layout keys and
+  three collapsed bits and calls `location.reload()`. That is acceptable only while nothing on the
+  page holds unsaved state. **Before the editor holds a draft, it must become a live reset** (the
+  shell re-keys or re-mounts its groups) or it violates *Never lose work*. `layoutKeys()` in
+  `apps/studio/src/app/studio-commands.ts` is the list to keep in step if a panel ever renders
+  conditionally (a suffixed layout key would appear).
+- **2026-09-04** — Menus portal to `document.body` because every cockpit panel is
+  `overflow-hidden` (`packages/shell/src/lib/cockpit.tsx`); a dropdown rendered in place is clipped
+  to the 48px shelf. Two consequences: the skin's contract properties must be declared on `:root`
+  (a portaled menu inherits from `body`, not from the bar), and the focus handoff cannot use
+  `#top.contains(activeElement)` alone — the studio's dropdowns carry `data-region="top"` and the
+  handoff checks `activeElement.closest('[data-region]')`.
+- **2026-09-04** — Radix menus in jsdom: `Element.prototype` lacks `scrollIntoView`,
+  `hasPointerCapture`, `setPointerCapture`, `releasePointerCapture`, all of which Radix calls;
+  `tools/src/vitest/setup.ts` stubs them. A submenu cannot be *clicked* into in jsdom: leaving the
+  sub-trigger row with no geometry has no grace area to cross, so Radix closes the submenu before
+  the click lands — open it with ArrowRight and choose with Enter. Radix's default Escape inside a
+  submenu closes the whole bar; `Menubar.Sub` overrides it to close one level (APG), so the
+  package spec asserts that, not the Radix default.
+- **2026-09-04** — react-resizable-panels registers a capture-phase `pointerdown` on the document
+  that hit-tests every separator and, when one is under the pointer, focuses it and prevents the
+  default. jsdom rects are all zero, so every separator is under every click and a Radix trigger
+  (which yields to a prevented event) never opens inside the real cockpit. App-level specs open
+  menus by keyboard (`focus()` + Enter); pointer flows are proven in the package spec and the
+  browser harness. Radix's roving focus moves on a `setTimeout`, so a harness sleeps ~100ms after an
+  arrow key before reading `activeElement`; a hover-open timer (100ms) started by the click's own
+  pointer move can reopen a submenu closed within that window — wait it out before pressing Escape.
+- **2026-09-04** — pnpm appends script arguments only to the *last* command of a `&&` chain, so
+  `pnpm verify:ui --preview` inside `pnpm verify` reached only the final harness. `verify:ui` is now
+  one command, `node tools/src/verify/all.mjs`, which runs every harness under one browser.
+- **2026-09-04** — Region shortcuts are ⌃⌘B / ⌃⌘J / ⌃⌘I / ⌃⌘T, deliberately not VS Code's ⌘B
+  family: the Write milestone's prose editor needs ⌘B and ⌘I for bold and italic, and a shortcut
+  shipped now that the editor must break is worse than one that differs now. Headless Chromium has
+  no browser chrome, so the harness proves the bindings reach the page, not that Chrome on macOS
+  lets them through — that is a manual check in Ryan's own browser. The bindings live in
+  `StudioShortcuts`, rendered by the preset outside every panel, so a collapsed top shelf does not
+  take the keyboard with it.
+
 - **2026-09-04** — `pnpm nx g @nx/react:library` takes the *directory* as its positional argument
   (`nx g @nx/react:library [directory]`); pass the project name separately
   (`--directory=packages/menubar --name=menubar --importPath=@creator-studio/menubar`). A name in

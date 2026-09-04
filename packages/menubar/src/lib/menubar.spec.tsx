@@ -153,6 +153,27 @@ describe('Menubar', () => {
     expect(onTheme).toHaveBeenCalledWith('dark');
   });
 
+  it('Escape in a submenu closes that level only and focuses its row; ArrowLeft does the same', async () => {
+    const { user, trigger } = setup();
+    await user.click(trigger('View'));
+    const theme = await screen.findByRole('menuitem', { name: 'Theme' });
+    await user.click(theme);
+    await waitFor(() => expect(screen.getAllByRole('menu')).toHaveLength(2));
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'Light' })));
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.getAllByRole('menu')).toHaveLength(1));
+    expect(document.activeElement).toBe(theme);
+    await user.keyboard('{ArrowRight}');
+    await waitFor(() => expect(screen.getAllByRole('menu')).toHaveLength(2));
+    await user.keyboard('{ArrowLeft}');
+    await waitFor(() => expect(screen.getAllByRole('menu')).toHaveLength(1));
+    expect(document.activeElement).toBe(theme);
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(document.activeElement).toBe(trigger('View'));
+  });
+
   it('typeahead matches the label, not the mark or the shortcut', async () => {
     const { user, trigger } = setup();
     act(() => trigger('View').focus());

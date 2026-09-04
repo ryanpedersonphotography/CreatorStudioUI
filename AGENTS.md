@@ -40,6 +40,15 @@ window resizes. Layout persists through the `contracts` port and the `adapters/l
 by `pnpm verify:ui` (a Playwright harness against the dev server or, with `--preview`, the built
 bundle); `packages/tokens` holds the design tokens; `pnpm verify` is green from the root.
 
+**Menu bar stands (2026-09-04).** The top shelf is an IDE-style menu bar, File · Edit · View, over
+`packages/menubar` (a portable package: no workspace dependencies, enforced by the `kind:portable`
+tag and a manifest spec). View toggles the four regions (⌃⌘B navigation, ⌃⌘J context shelf, ⌃⌘I
+inspector, ⌃⌘T top shelf — not VS Code's ⌘B family, which the prose editor will need for bold and
+italic), switches the theme (persisted under `cs:theme`), and resets the layout (by reload: a dated
+constraint, see friction notes). File and Edit are disabled seams for Write. The region toggles stay
+at the shelf's right, as an IDE keeps its layout controls. Proven by `tools/src/verify/menubar.mjs`
+at the design viewport; `pnpm verify:ui` now runs both harnesses.
+
 **Next milestone — Write:** the manuscript editor surface inside the cockpit. Nothing writer-facing
 lands without the two-reviewer gate.
 
@@ -60,6 +69,9 @@ undecided. Challenge any of them.
   `@creator-studio/shell`). The app is `apps/studio`.
 - **App** — React 19 + TypeScript strict + Vite + Tailwind v4. Vite pins `port: 5180, strictPort: true`
   (5173 and its fallback 5190 belong to the reference app). Browser first; Electron is a later door.
+  **Desktop only**, laid out for a MacBook Pro 14": 1512 × 982 logical px at 2× is the design
+  viewport and the menubar harness runs there. Hover and a fine pointer may be assumed; no responsive
+  breakpoints, no mobile layout of any kind.
 - **Shell** — react-resizable-panels v4. Import the library's panel as
   `import { Panel as ResizablePanel } from "react-resizable-panels"` so our own `Panel` compound stays
   free. Layout state is serialised by the library and written through the `LayoutStore` port under
@@ -67,7 +79,14 @@ undecided. Challenge any of them.
   learns which library is underneath.
 - **Editor** — ProseMirror via `@handlewithcare/react-prosemirror`. Not in the skeleton.
 - **Primitives** — Ark UI by default; Radix only where Ark has no equivalent, with a one-line
-  comment beside the import saying why.
+  comment beside the import saying why. One such exception stands: `@radix-ui/react-menubar` in
+  `packages/menubar` (Ark has no menubar; the bar-level roving focus and hover-switch live there).
+- **Portable packages** — a package meant to live with this codebase or without it carries the
+  `kind:portable` tag (the root eslint matrix then forbids every workspace import), a manifest spec
+  that rejects a `@creator-studio/*` dependency, a plain-CSS skin whose values come from a `:root`
+  contract block of custom properties with standalone fallbacks (one `token-ok` per contract line,
+  with the reason; every other rule uses the file-local copies), and a README with the extraction
+  steps and the contract table. The consumer maps the contract from tokens in its own stylesheet.
 - **Styling** — every design value lives in `packages/tokens`: CSS in `src/tokens.css` (`--cs-p-*`
   primitives, `--cs-*` semantics, an `@theme inline` bridge into Tailwind utilities) and typed lengths
   such as `cockpitSizes` in `src/lib/sizes.ts`. `pnpm lint:tokens` (ported from the reference app)
@@ -76,7 +95,12 @@ undecided. Challenge any of them.
   colocated with the feature, exported from its `index.ts`. No global store.
 - **Stories and tests** — Ladle from `.ladle/` at the root across all packages; Vitest + Testing
   Library for units, with the shared `tools/src/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
-  the Playwright harness `tools/src/verify/cockpit.mjs` against the running app or the built bundle.
+  the Playwright harnesses under `tools/src/verify/` (`cockpit.mjs` at 1440 × 900, `menubar.mjs`
+  at 1512 × 982 @2×; `lib.mjs` owns the browser, the preview server and the tally; `all.mjs` runs
+  every harness under one browser and exits once) against the running app or the built bundle.
+  Radix menus in jsdom need the pointer-capture and `scrollIntoView` stubs in the shared setup and
+  `@testing-library/user-event` for pointer flows; menus inside the real cockpit open by keyboard in
+  specs (see friction notes).
 
 ## Conventions
 
@@ -149,7 +173,8 @@ is the authority; the essentials:
 
 `AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `apps/studio` (composition root: the one place an
 adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapters/local` ·
-`tools/src/lint/check-tokens.mjs` · `tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
+`packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` ·
+`tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
 `references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
 (review-gate records) · registry entry
 `~/.claude/scripts/proj/bin/proj get creator-studio-ui` · transcripts

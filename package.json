@@ -12,7 +12,7 @@
     "stories:build": "ladle build",
     "build": "nx run-many -t build",
     "verify": "pnpm typecheck && pnpm lint && pnpm lint:tokens && pnpm test && pnpm stories:build && pnpm build && pnpm verify:ui --preview",
-    "verify:ui": "node tools/src/verify/cockpit.mjs"
+    "verify:ui": "node tools/src/verify/all.mjs"
   },
   "private": true,
   "devDependencies": {
