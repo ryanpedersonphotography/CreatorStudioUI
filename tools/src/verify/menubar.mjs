@@ -63,13 +63,14 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       let base = [255, 255, 255]; // nothing painted at all: the viewport's white
       for (const layer of layers.reverse()) base = layer.rgb.map((v, i) => v * layer.alpha + base[i] * (1 - layer.alpha));
       const fg = rgba(cs[of]);
-      const a = lum(fg.rgb.map((v, i) => v * fg.alpha + base[i] * (1 - fg.alpha))); // a translucent foreground is what the eye sees of it
+      const seen = fg.rgb.map((v, i) => v * fg.alpha + base[i] * (1 - fg.alpha)); // a translucent foreground is what the eye sees of it
+      const a = lum(seen);
       const b = lum(base);
       const background = `rgb(${base.map(Math.round).join(', ')})`;
       // a border or outline keeps its computed colour when nothing draws it (width 0 or style none), so those probes report both
       const drawn =
         of === 'color' ? true : of === 'outlineColor' ? parseFloat(cs.outlineWidth) > 0 && cs.outlineStyle !== 'none' : parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none';
-      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], background, painted, drawn, border: `${cs.borderTopWidth} ${cs.borderTopStyle}` };
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], rgb: seen.map(Math.round), background, painted, drawn, border: `${cs.borderTopWidth} ${cs.borderTopStyle}` };
     }, of);
   const contrast = (loc) => probe(loc, 'color');
   const edge = (loc) => probe(loc, 'borderTopColor');
@@ -157,11 +158,14 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const afterLabel = (await focusedLabel()).trim();
   ok('Tab again leaves the bar for a region toggle: one tab stop for the whole bar', afterTag === 'BUTTON' && ['Navigation', 'Context shelf', 'Inspector', 'Top shelf'].includes(afterLabel), `${afterTag} ${afterLabel}`);
   const focusedChip = page.locator('#top button:focus');
+  await sleep(300); // the chip transitions its colours (outline included) for 150ms; probe the settled ring, not the interpolation
   const chipRing = await focusedChip.evaluate((el) => {
     const cs = getComputedStyle(el);
     return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), offset: parseFloat(cs.outlineOffset), border: `${cs.borderTopWidth} ${cs.borderTopStyle}`, borderColor: cs.borderTopColor, pressed: el.getAttribute('aria-pressed') };
   });
   const chipRingColor = await probe(focusedChip, 'outlineColor');
+  const chipBorderColor = await probe(focusedChip, 'borderTopColor');
+  const apart = Math.hypot(...chipRingColor.rgb.map((v, i) => v - chipBorderColor.rgb[i])); // numeric, because Chrome serialises the same colour as oklch or oklab depending on how it got there
   ok(
     'the focused toggle paints the ring outside its border, so a pressed outline stays visible under focus',
     chipRing.style !== 'none' && chipRing.width >= 1 && chipRing.offset >= 0 && chipRing.border === '1px solid' && chipRing.pressed === 'true',
@@ -169,8 +173,8 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   );
   ok(
     "the ring clears 3:1 against the shelf and is not the pressed outline's colour: focus and pressed stay distinguishable",
-    chipRingColor.drawn && chipRingColor.painted && chipRingColor.ratio >= 3 && chipRingColor.color !== chipRing.borderColor,
-    `ring ${chipRingColor.ratio.toFixed(2)}:1 (${chipRingColor.color} on ${chipRingColor.background}), border ${chipRing.borderColor}`,
+    chipRingColor.drawn && chipRingColor.painted && chipRingColor.ratio >= 3 && apart > 40,
+    `ring ${chipRingColor.ratio.toFixed(2)}:1 (${chipRingColor.color} on ${chipRingColor.background}), ${Math.round(apart)} from the border ${chipRing.borderColor}`,
   );
 
   // 4 — View's check items are the regions; the gutter shows the state; the ⌃⌘ shortcuts work
