@@ -1,4 +1,6 @@
 @import 'tailwindcss';
 @import '@creator-studio/tokens/tokens.css';
+/* The menubar's standalone skin; no --menubar-* bridge here, so its story shows the copy-out look. */
+@import '@creator-studio/menubar/menubar.css';
 @source '../packages';
 @source '../apps';

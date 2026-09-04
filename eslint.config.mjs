@@ -64,6 +64,13 @@ export default [
               sourceTag: 'scope:shared',
               onlyDependOnLibsWithTags: ['scope:shared'],
             },
+            // kind axis — portability. Constraints are ANDed and no other project carries
+            // the tag, so a kind:portable package can import no workspace project at all;
+            // it is copy-out-able. The studio (type:app, scope:studio) may still import it.
+            {
+              sourceTag: 'kind:portable',
+              onlyDependOnLibsWithTags: ['kind:portable'],
+            },
           ],
         },
       ],

@@ -1,0 +1,155 @@
+/*
+ * Skin for @creator-studio/menubar.
+ *
+ * Contract: the --menubar-* properties named in the block below. A consumer
+ * sets them on :root (the studio maps them from its design tokens); each has a
+ * standalone fallback, so the bar renders with none of them set. Colour
+ * fallbacks are CSS system colours and follow `color-scheme`. Everything after
+ * the block uses only the file-local --_mb-* copies.
+ *
+ * The block is on :root, not on the bar: menus render in a body portal and
+ * inherit from body, so a bar-scoped value would never reach them.
+ *
+ * Each contract line is exempt from the repo's token lint (`token-ok`): the
+ * fallback is the one raw value a portable package must carry.
+ */
+:root {
+  --_mb-bg: var(--menubar-bg, Canvas); /* token-ok: portable contract; the studio maps --menubar-* from --cs-* */
+  --_mb-fg: var(--menubar-fg, CanvasText); /* token-ok: portable contract */
+  --_mb-muted: var(--menubar-muted, GrayText); /* token-ok: portable contract */
+  --_mb-border: var(--menubar-border, ButtonBorder); /* token-ok: portable contract */
+  --_mb-border-width: var(--menubar-border-width, 1px); /* token-ok: portable contract */
+  --_mb-highlight-bg: var(--menubar-highlight-bg, Highlight); /* token-ok: portable contract */
+  --_mb-highlight-fg: var(--menubar-highlight-fg, HighlightText); /* token-ok: portable contract */
+  --_mb-focus: var(--menubar-focus, Highlight); /* token-ok: portable contract */
+  --_mb-focus-ring: var(--menubar-focus-ring, 2px); /* token-ok: portable contract */
+  --_mb-radius: var(--menubar-radius, 0.25rem); /* token-ok: portable contract */
+  --_mb-font: var(--menubar-font, ui-sans-serif, system-ui, sans-serif); /* token-ok: portable contract */
+  --_mb-size: var(--menubar-size, 0.875rem); /* token-ok: portable contract */
+  --_mb-pad-x: var(--menubar-pad-x, 0.5rem); /* token-ok: portable contract */
+  --_mb-pad-y: var(--menubar-pad-y, 0.25rem); /* token-ok: portable contract */
+  --_mb-gap: var(--menubar-gap, 1.5rem); /* token-ok: portable contract; label-to-shortcut distance */
+  --_mb-indicator-width: var(--menubar-indicator-width, 1.25em); /* token-ok: portable contract; the check column */
+  --_mb-min-width: var(--menubar-min-width, 14rem); /* token-ok: portable contract */
+  --_mb-shadow: var(--menubar-shadow, 0 0.5rem 1.5rem rgb(0 0 0 / 0.18)); /* token-ok: portable contract; the rgb literal is the standalone fallback */
+  --_mb-motion: var(--menubar-motion, 120ms); /* token-ok: portable contract */
+  --_mb-z: var(--menubar-z, 50); /* token-ok: portable contract; above a focused panel separator */
+  --_mb-max-h: var(--radix-menubar-content-available-height, 80vh); /* token-ok: Radix sets this per open menu */
+}
+
+/* The bar */
+[data-menubar='root'] {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-family: var(--_mb-font);
+  font-size: var(--_mb-size);
+  color: var(--_mb-fg);
+}
+
+/* A title */
+[data-menubar='trigger'] {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-radius: var(--_mb-radius);
+  color: inherit;
+  font: inherit;
+  padding: var(--_mb-pad-y) var(--_mb-pad-x);
+  cursor: default;
+  user-select: none;
+  transition:
+    background-color var(--_mb-motion),
+    color var(--_mb-motion);
+}
+[data-menubar='trigger']:hover,
+[data-menubar='trigger'][data-state='open'] {
+  background: var(--_mb-highlight-bg);
+  color: var(--_mb-highlight-fg);
+}
+
+/* Keyboard focus, on titles and on rows */
+[data-menubar='trigger']:focus-visible,
+[data-menubar='item']:focus-visible,
+[data-menubar='check']:focus-visible,
+[data-menubar='radio']:focus-visible,
+[data-menubar='sub-trigger']:focus-visible {
+  outline: var(--_mb-focus-ring) solid var(--_mb-focus);
+  outline-offset: calc(-1 * var(--_mb-focus-ring));
+}
+
+/* A menu, top-level or nested */
+[data-menubar='content'] {
+  z-index: var(--_mb-z);
+  box-sizing: border-box;
+  min-width: var(--_mb-min-width);
+  max-height: var(--_mb-max-h);
+  overflow: auto;
+  padding: var(--_mb-pad-y);
+  background: var(--_mb-bg);
+  color: var(--_mb-fg);
+  font-family: var(--_mb-font);
+  font-size: var(--_mb-size);
+  border: var(--_mb-border-width) solid var(--_mb-border);
+  border-radius: var(--_mb-radius);
+  box-shadow: var(--_mb-shadow);
+}
+
+/* A row: indicator gutter, label, shortcut (or chevron) */
+[data-menubar='item'],
+[data-menubar='check'],
+[data-menubar='radio'],
+[data-menubar='sub-trigger'] {
+  display: grid;
+  grid-template-columns: var(--_mb-indicator-width) 1fr auto;
+  align-items: center;
+  column-gap: var(--_mb-pad-x);
+  padding: var(--_mb-pad-y) var(--_mb-pad-x);
+  border-radius: var(--_mb-radius);
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+[data-menubar='item'][data-highlighted],
+[data-menubar='check'][data-highlighted],
+[data-menubar='radio'][data-highlighted],
+[data-menubar='sub-trigger'][data-highlighted],
+[data-menubar='sub-trigger'][data-state='open'] {
+  background: var(--_mb-highlight-bg);
+  color: var(--_mb-highlight-fg);
+}
+[data-menubar='item'][data-disabled],
+[data-menubar='check'][data-disabled],
+[data-menubar='radio'][data-disabled],
+[data-menubar='sub-trigger'][data-disabled] {
+  color: var(--_mb-muted);
+  pointer-events: none;
+}
+
+[data-menubar='indicator'] {
+  display: inline-flex;
+  justify-content: center;
+}
+[data-menubar='shortcut'] {
+  margin-left: var(--_mb-gap);
+  color: var(--_mb-muted);
+}
+[data-highlighted] > [data-menubar='shortcut'] {
+  color: inherit;
+}
+[data-menubar='chevron'] {
+  justify-self: end;
+}
+
+[data-menubar='separator'] {
+  height: var(--_mb-border-width);
+  margin: var(--_mb-pad-y) 0;
+  background: var(--_mb-border);
+}
+
+[data-menubar='group-label'] {
+  padding: var(--_mb-pad-y) var(--_mb-pad-x);
+  padding-left: calc(var(--_mb-pad-x) * 2 + var(--_mb-indicator-width));
+  color: var(--_mb-muted);
+  font-size: smaller;
+}

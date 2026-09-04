@@ -2,6 +2,17 @@
 
 Footguns and lessons that must survive between sessions. Add to the top; never delete.
 
+- **2026-09-04** — `pnpm nx g @nx/react:library` takes the *directory* as its positional argument
+  (`nx g @nx/react:library [directory]`); pass the project name separately
+  (`--directory=packages/menubar --name=menubar --importPath=@creator-studio/menubar`). A name in
+  the positional slot plus `--directory` sets two directories. With `--component=false` the
+  generator forces `style: none`, so `--style=css` is inert; it still writes `.babelrc` and a Jest
+  README stub that no sibling package keeps, and an empty `src/index.ts` that `isolatedModules`
+  rejects until it says `export {};`.
+- **2026-09-04** — Under Vitest's jsdom environment `import.meta.url` is a `file:` URL but the
+  global `URL` is the environment's: `new URL('../../package.json', import.meta.url)` resolves
+  to `http:` and `node:fs` throws "The URL must be of scheme file". Specs that read files use
+  `resolve(import.meta.dirname, …)` (see `packages/menubar/src/lib/manifest.spec.ts`).
 - **2026-09-02** — pnpm 11 runs a dependency-status check before every `pnpm nx …`; if any workspace
   package declares `workspace:*` on a package that does not exist yet (or was just removed), every
   nx command dies with a pnpm stack trace. Remove the dependency line, run the generator, put it back.
