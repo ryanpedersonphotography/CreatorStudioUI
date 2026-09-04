@@ -65,7 +65,9 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       const a = lum(fg.rgb.map((v, i) => v * fg.alpha + base[i] * (1 - fg.alpha))); // a translucent foreground is what the eye sees of it
       const b = lum(base);
       const background = `rgb(${base.map(Math.round).join(', ')})`;
-      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], background, painted };
+      // a border keeps its computed colour when nothing draws it (width 0 or style none), so an outline probe reports both
+      const drawn = of === 'color' ? true : parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none';
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], background, painted, drawn, border: `${cs.borderTopWidth} ${cs.borderTopStyle}` };
     }, of);
   const contrast = (loc) => probe(loc, 'color');
   const edge = (loc) => probe(loc, 'borderTopColor');
@@ -172,8 +174,8 @@ export async function run({ page, ok, sleep, errors, BASE }) {
     const offFill = await button('Navigation').evaluate((el) => getComputedStyle(el).backgroundColor);
     ok(
       `${theme} theme: a pressed toggle's outline clears 3:1 against the shelf and an unpressed one's does not: state is not signalled by ink alone`,
-      (await button('Inspector').getAttribute('aria-pressed')) === 'true' && on.painted && on.ratio >= 3 && off.ratio < 3 && offFill === 'rgba(0, 0, 0, 0)',
-      `pressed ${on.ratio.toFixed(2)}:1 (${on.color} on ${on.background}), unpressed ${off.ratio.toFixed(2)}:1, unpressed fill ${offFill}`,
+      (await button('Inspector').getAttribute('aria-pressed')) === 'true' && on.painted && on.drawn && on.ratio >= 3 && off.ratio < 3 && offFill === 'rgba(0, 0, 0, 0)',
+      `pressed ${on.ratio.toFixed(2)}:1 (${on.color} on ${on.background}, ${on.border}), unpressed ${off.ratio.toFixed(2)}:1, unpressed fill ${offFill}`,
     );
   };
   await pressedState('light');
