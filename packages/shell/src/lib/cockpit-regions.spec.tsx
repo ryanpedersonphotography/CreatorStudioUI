@@ -6,7 +6,7 @@ import { useCockpitRegion } from './cockpit-regions.js';
 import type { PanelToggle } from './use-panel-toggle.js';
 
 function fakeToggle(): PanelToggle {
-  return { hidden: false, hide: vi.fn(), show: vi.fn(), toggle: vi.fn(), panelProps: {} };
+  return { collapsed: false, collapse: vi.fn(), expand: vi.fn(), toggle: vi.fn(), panelProps: {} };
 }
 
 describe('useCockpitRegion', () => {

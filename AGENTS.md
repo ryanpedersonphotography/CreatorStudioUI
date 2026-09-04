@@ -35,7 +35,7 @@ its own: the UI is the product and backends plug in behind ports (see *How it's 
 
 **Cockpit stands (2026-09-03).** `apps/studio` boots on port 5180 and composes the writer's cockpit:
 five regions from three nested cockpits (top shelf, navigation, manuscript surface, context shelf,
-inspector), with hide/show toggles, a pinned top shelf, and sidebars that hold their width when the
+inspector), with a rail or strip state on every edge (nothing vanishes), a pinned top shelf, and sidebars that hold their width when the
 window resizes. Layout persists through the `contracts` port and the `adapters/local` adapter, proven
 by `pnpm verify:ui` (a Playwright harness against the dev server or, with `--preview`, the built
 bundle); `packages/tokens` holds the design tokens; `pnpm verify` is green from the root.

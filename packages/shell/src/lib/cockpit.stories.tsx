@@ -38,8 +38,8 @@ export const ThreeRegions: Story = () => (
 );
 
 /**
- * What only the primitive can show: both axes from one component, a pinned
- * shelf whose edge refuses to move yet hides from a control outside it, and
+ * What only the primitive can expand: both axes from one component, a pinned
+ * shelf whose edge refuses to move yet collapses from a control outside it, and
  * toggles read through Cockpit.Regions. The product's five-region layout is
  * storied where it lives, in apps/studio.
  */
@@ -91,7 +91,7 @@ function RegionButton({ region, children }: { region: string; children: string }
   return (
     <button
       type="button"
-      aria-pressed={!toggle.hidden}
+      aria-pressed={!toggle.collapsed}
       onClick={toggle.toggle}
       className="rounded-sm border border-border px-sm text-ink-muted hover:text-ink aria-pressed:text-ink"
     >

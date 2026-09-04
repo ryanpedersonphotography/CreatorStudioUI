@@ -38,70 +38,70 @@ function mount(restoreSize?: (typeof cockpitSizes)[keyof typeof cockpitSizes], c
 
 describe('usePanelToggle', () => {
   it('starts shown and self-corrects on mount when the restored layout is collapsed', () => {
-    expect(mount().result.current.hidden).toBe(false);
-    expect(mount(undefined, true).result.current.hidden).toBe(true);
+    expect(mount().result.current.collapsed).toBe(false);
+    expect(mount(undefined, true).result.current.collapsed).toBe(true);
   });
 
-  it('hide() collapses and hidden follows the panel, not the click', () => {
+  it('collapse() collapses and collapsed follows the panel, not the click', () => {
     const { result, spies, dragTo } = mount(cockpitSizes.navDefault);
-    act(() => result.current.hide());
+    act(() => result.current.collapse());
     expect(spies.collapse).toHaveBeenCalledTimes(1);
     dragTo(true);
-    expect(result.current.hidden).toBe(true);
+    expect(result.current.collapsed).toBe(true);
   });
 
   it('a drag that collapses the panel is noticed through onResize', () => {
     const { result, dragTo } = mount(cockpitSizes.navDefault);
     dragTo(true);
-    expect(result.current.hidden).toBe(true);
+    expect(result.current.collapsed).toBe(true);
   });
 
-  it('show() after hide() reopens exactly where it was, through expand()', () => {
+  it('expand() after collapse() reopens exactly where it was, through expand()', () => {
     const { result, spies } = mount(cockpitSizes.navDefault);
-    act(() => result.current.hide());
-    act(() => result.current.show());
+    act(() => result.current.collapse());
+    act(() => result.current.expand());
     expect(spies.expand).toHaveBeenCalledTimes(1);
     expect(spies.resize).not.toHaveBeenCalled();
   });
 
-  it('show() after the user dragged it shut reopens at the named restore size', () => {
+  it('expand() after the user dragged it shut reopens at the named restore size', () => {
     const { result, spies, dragTo } = mount(cockpitSizes.navDefault);
     dragTo(true);
-    act(() => result.current.show());
+    act(() => result.current.expand());
     expect(spies.resize).toHaveBeenCalledWith(cockpitSizes.navDefault);
     expect(spies.expand).not.toHaveBeenCalled();
   });
 
-  it('a hide() followed by a drag open and a drag shut counts as a drag', () => {
+  it('a collapse() followed by a drag open and a drag shut counts as a drag', () => {
     const { result, spies, dragTo } = mount(cockpitSizes.navDefault);
-    act(() => result.current.hide());
+    act(() => result.current.collapse());
     dragTo(false);
     dragTo(true);
-    act(() => result.current.show());
+    act(() => result.current.expand());
     expect(spies.resize).toHaveBeenCalledWith(cockpitSizes.navDefault);
   });
 
   it('a layout restored collapsed reopens at the restore size', () => {
     const { result, spies } = mount(cockpitSizes.navDefault, true);
-    act(() => result.current.show());
+    act(() => result.current.expand());
     expect(spies.resize).toHaveBeenCalledWith(cockpitSizes.navDefault);
     expect(spies.expand).not.toHaveBeenCalled();
   });
 
-  it('show() falls back to expand() when no restore size was given', () => {
+  it('expand() falls back to expand() when no restore size was given', () => {
     const { result, spies } = mount(undefined, true);
-    act(() => result.current.show());
+    act(() => result.current.expand());
     expect(spies.expand).toHaveBeenCalledTimes(1);
     expect(spies.resize).not.toHaveBeenCalled();
   });
 
-  it('show() on an open panel and hide() on a collapsed one do nothing', () => {
+  it('expand() on an open panel and collapse() on a collapsed one do nothing', () => {
     const open = mount(cockpitSizes.navDefault);
-    act(() => open.result.current.show());
+    act(() => open.result.current.expand());
     expect(open.spies.resize).not.toHaveBeenCalled();
     expect(open.spies.expand).not.toHaveBeenCalled();
     const shut = mount(cockpitSizes.navDefault, true);
-    act(() => shut.result.current.hide());
+    act(() => shut.result.current.collapse());
     expect(shut.spies.collapse).not.toHaveBeenCalled();
   });
 
@@ -113,33 +113,33 @@ describe('usePanelToggle', () => {
     expect(spies.expand).toHaveBeenCalledTimes(1);
   });
 
-  it('hide() and show() report that they acted, and hidden is truthful before any onResize', () => {
+  it('collapse() and expand() report that they acted, and collapsed is truthful before any onResize', () => {
     const { result } = mount(cockpitSizes.navDefault);
     let acted = false;
     act(() => {
-      acted = result.current.hide();
+      acted = result.current.collapse();
     });
     expect(acted).toBe(true);
-    expect(result.current.hidden).toBe(true);
+    expect(result.current.collapsed).toBe(true);
     act(() => {
-      acted = result.current.show();
+      acted = result.current.expand();
     });
     expect(acted).toBe(true);
-    expect(result.current.hidden).toBe(false);
+    expect(result.current.collapsed).toBe(false);
   });
 
-  it('when the group has no room, hide() reports false, hidden stays honest, and nothing is remembered', () => {
+  it('when the group has no room, collapse() reports false, collapsed stays honest, and nothing is remembered', () => {
     const { result, spies, dragTo } = mount(cockpitSizes.navDefault, false, true);
     let acted = true;
     act(() => {
-      acted = result.current.hide();
+      acted = result.current.collapse();
     });
     expect(spies.collapse).toHaveBeenCalledTimes(1);
     expect(acted).toBe(false);
-    expect(result.current.hidden).toBe(false);
-    // The failed hide left no memory: a later drag shut reopens by the drag rule.
+    expect(result.current.collapsed).toBe(false);
+    // The failed collapse left no memory: a later drag shut reopens by the drag rule.
     dragTo(true);
-    act(() => result.current.show());
+    act(() => result.current.expand());
     expect(spies.resize).toHaveBeenCalledWith(cockpitSizes.navDefault);
     expect(spies.expand).not.toHaveBeenCalled();
   });

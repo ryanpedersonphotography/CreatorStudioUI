@@ -4,34 +4,40 @@ import type { PanelLength } from '@creator-studio/tokens';
 import type { CockpitPanelBinding } from './cockpit.js';
 
 export interface PanelToggle {
-  /** True while the panel sits at its collapsed size. Follows drags too, not only the buttons. */
-  hidden: boolean;
   /**
-   * Collapse the panel. Returns true when it collapsed; false when it already
-   * was, or when the group had no room to act (every neighbour at its minimum).
+   * True while the panel sits at its collapsed size: gone, or a rail or strip
+   * when `collapsedSize` leaves one. Follows drags too, not only the buttons.
    */
-  hide: () => boolean;
+  collapsed: boolean;
   /**
-   * Reopen the panel. After a hide() it comes back exactly where it was; after
-   * the user dragged it shut it comes back at `restoreSize`, or at the panel's
-   * minimum when no size was named. Returns true when it opened.
+   * Collapse the panel to its collapsed size. Returns true when it collapsed;
+   * false when it already was, or when the group had no room to act (every
+   * neighbour at its minimum).
    */
-  show: () => boolean;
-  /** hide() when open, show() when collapsed; returns what that call returned. */
+  collapse: () => boolean;
+  /**
+   * Reopen the panel. After a collapse() it comes back exactly where it was;
+   * after the user dragged it shut it comes back at `restoreSize`, or at the
+   * panel's minimum when no size was named. Returns true when it opened.
+   */
+  expand: () => boolean;
+  /** collapse() when open, expand() when collapsed; returns what that call returned. */
   toggle: () => boolean;
   /** Spread onto the `Cockpit.Panel` this toggle controls. That panel must be `collapsible`. */
   panelProps: CockpitPanelBinding;
 }
 
 /**
- * Wires a collapsible panel to a hide/show control that lives outside it.
+ * Wires a collapsible panel to a collapse/expand control that lives outside it.
+ * A region collapsed to a rail or strip is still "collapsed" here: only the
+ * library knows that panel's collapsed size, and `isCollapsed()` asks it.
  * Component state plus the library's own imperative API; nothing global,
  * nothing persisted here (the cockpit's store remembers sizes).
  *
  * Five details, each the fix for a measured failure:
  * - A callback ref, so the hook re-renders when the handle attaches and a
  *   button is never bound to a stale null.
- * - `onResize` feeds `hidden`, so a user dragging the panel shut keeps the
+ * - `onResize` feeds `collapsed`, so a user dragging the panel shut keeps the
  *   button's label honest even though no click ran.
  * - `isCollapsed()` rather than a zero-size test, because a panel can collapse
  *   to a visible stub and only the library knows that panel's collapsed size.
@@ -41,14 +47,14 @@ export interface PanelToggle {
  *   dragged-shut panel reopens at the named `restoreSize` instead.
  * - The imperative calls return nothing and fire no `onResize` when nothing
  *   moved, which is what happens once the group has no slack. The group's
- *   store answers synchronously, so hide() and show() read the panel back
+ *   store answers synchronously, so collapse() and expand() read the panel back
  *   and report whether they acted instead of assuming.
  */
 export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
   const [handle, setHandle] = usePanelCallbackRef();
-  const [hidden, setHidden] = useState(false);
-  // Set by a hide() that took effect, cleared the moment the panel is seen open
-  // again. A collapse the user dragged never sets it, which is how show() knows
+  const [collapsed, setCollapsed] = useState(false);
+  // Set by a collapse() that took effect, cleared the moment the panel is seen open
+  // again. A collapse the user dragged never sets it, which is how expand() knows
   // which way back.
   const collapsedByUs = useRef(false);
 
@@ -57,7 +63,7 @@ export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
     const next = handle?.isCollapsed();
     if (next === undefined) return false;
     if (!next) collapsedByUs.current = false;
-    setHidden(next);
+    setCollapsed(next);
     return next;
   }, [handle]);
 
@@ -69,7 +75,7 @@ export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
 
   const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(), [sync]);
 
-  const hide = useCallback((): boolean => {
+  const collapse = useCallback((): boolean => {
     if (!handle || handle.isCollapsed()) return false;
     collapsedByUs.current = true;
     handle.collapse();
@@ -78,23 +84,23 @@ export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
     return collapsed;
   }, [handle, sync]);
 
-  const show = useCallback((): boolean => {
+  const expand = useCallback((): boolean => {
     if (!handle?.isCollapsed()) return false;
     if (collapsedByUs.current || restoreSize === undefined) handle.expand();
     else handle.resize(restoreSize);
-    // sync() clears collapsedByUs itself once the panel is seen open; a show()
+    // sync() clears collapsedByUs itself once the panel is seen open; an expand()
     // that could not act keeps the memory for the next attempt.
     return !sync();
   }, [handle, restoreSize, sync]);
 
   const toggle = useCallback((): boolean => {
     if (!handle) return false;
-    return handle.isCollapsed() ? show() : hide();
-  }, [handle, hide, show]);
+    return handle.isCollapsed() ? expand() : collapse();
+  }, [handle, collapse, expand]);
 
   // Stable identity so consumers can list the toggle in a dependency array.
   return useMemo(
-    () => ({ hidden, hide, show, toggle, panelProps: { panelRef: setHandle, onResize } }),
-    [hidden, hide, show, toggle, onResize, setHandle],
+    () => ({ collapsed, collapse, expand, toggle, panelProps: { panelRef: setHandle, onResize } }),
+    [collapsed, collapse, expand, toggle, onResize, setHandle],
   );
 }

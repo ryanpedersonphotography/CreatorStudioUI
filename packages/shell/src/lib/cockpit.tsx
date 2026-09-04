@@ -110,7 +110,7 @@ export interface CockpitPanelProps extends CockpitPanelBinding {
   collapsible?: boolean;
   /** Where a collapsible panel stops; defaults to nothing visible. */
   collapsedSize?: PanelLength;
-  /** The user cannot drag this panel's edges. A toggle can still hide it. */
+  /** The user cannot drag this panel's edges. A toggle can still collapse it. */
   disabled?: boolean;
   /**
    * `preserve-pixel-size` holds chrome at its width when the window resizes.
@@ -156,13 +156,15 @@ function CockpitPanel({
 
 /**
  * The props that make a region fixed in size, inert to dragging, and still
- * hideable through a toggle. A disabled panel is skipped by the drag hit-test
+ * collapsible through a toggle, to `collapsedSize`: nothing by default, or a
+ * strip that keeps a way back. A disabled panel is skipped by the drag hit-test
  * but still answers the imperative API (the reference kit measured a 120px
  * drag on such a rail moving it zero pixels while a button still hid it);
- * `collapsible` is what lets it hide.
+ * `collapsible` is what lets it collapse.
  */
 export function pinnedPanel(
   size: PanelLength,
+  collapsedSize: PanelLength = cockpitSizes.collapsed,
 ): Required<
   Pick<
     CockpitPanelProps,
@@ -175,7 +177,7 @@ export function pinnedPanel(
     maxSize: size,
     disabled: true,
     collapsible: true,
-    collapsedSize: cockpitSizes.collapsed,
+    collapsedSize,
     groupResizeBehavior: 'preserve-pixel-size',
   };
 }

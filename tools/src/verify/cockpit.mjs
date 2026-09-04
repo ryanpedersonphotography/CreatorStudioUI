@@ -4,6 +4,7 @@
  * Chromium. Proves the five regions, the separator states, drag + persist +
  * reload through the port, the toggles, the keyboard, the pinned top shelf,
  * and sidebars that hold their pixels while the window resizes (a stored layout is a share, not pixels).
+ * Nothing vanishes: sidebars collapse to 48px rails and shelves to 32px strips, each with its way back.
  *
  *   pnpm verify:ui               against the dev server on :5180
  *   pnpm verify:ui --preview     serves an existing apps/studio/dist on :5181 (run `pnpm build` first; it does not build)
@@ -160,51 +161,72 @@ ok('the main surface absorbed the change', (await width('#main')) < mainBefore -
 await page.setViewportSize({ width: 1440, height: 900 });
 await sleep(300);
 
-// 5 — the top shelf is pinned: token height, and its edge is a separator that refuses
+// 5 — the top shelf is pinned: token height, an edge that refuses, and a strip when collapsed
 const topHeight = await height('#top');
 ok('top shelf sits at its token height', topHeight === 48, `${topHeight}`);
 ok('the shelf edge is a disabled separator', (await page.locator(TOP_SEP).getAttribute('data-separator')) === 'disabled');
 await drag(TOP_SEP, 0, 80);
 ok('dragging the shelf edge moves it zero pixels (pinned by min = max; disabled is proven above)', (await height('#top')) === topHeight, `${topHeight} → ${await height('#top')}`);
+await button('Top shelf').click();
+await sleep(300);
+ok(
+  'the toolbar collapses its own shelf to the strip, which carries the way back',
+  (await height('#top')) === 32 && (await button('Expand top shelf').count()) === 1,
+  `${await height('#top')}`,
+);
+await button('Expand top shelf').click();
+await sleep(300);
+ok(
+  'the strip brings the shelf back at its token height',
+  (await height('#top')) === 48 && (await button('Top shelf').getAttribute('aria-pressed')) === 'true',
+  `${await height('#top')}`,
+);
 
-// 6 — toolbar toggles hide and show, and show puts back exactly what hide took away
+// 6 — sidebars collapse to rails; a rail holds its pixels; expand puts back exactly what collapse took
 await button('Navigation').click();
 await sleep(300);
 ok(
-  'toggle hides the nav and the button says so',
-  (await width('#nav')) === 0 && (await button('Navigation').getAttribute('aria-pressed')) === 'false',
+  'the nav collapses to its rail, not to nothing, and the button says so',
+  (await width('#nav')) === 48 && (await button('Navigation').getAttribute('aria-pressed')) === 'false',
   `${await width('#nav')}`,
 );
-await button('Navigation').click();
+ok('the rail carries the way back', (await page.locator('#nav').getByRole('button', { name: 'Expand navigation' }).count()) === 1);
+await page.setViewportSize({ width: 1200, height: 900 });
+await sleep(300);
+ok('a rail holds its pixels across a window resize', (await width('#nav')) === 48, `${await width('#nav')}`);
+await page.setViewportSize({ width: 1440, height: 900 });
+await sleep(300);
+await button('Expand navigation').click();
 await sleep(300);
 const navShown = await width('#nav');
 ok(
-  'toggle shows it again at the width the writer had dragged, not the default',
+  'expanding from the rail restores the width the writer had dragged, not the default',
   Math.abs(navShown - navRestored) <= 1 && (await button('Navigation').getAttribute('aria-pressed')) === 'true',
   `${navRestored} → ${navShown}`,
 );
 await button('Inspector').click();
 await sleep(300);
-ok('toggle hides the inspector', (await width('#inspector')) === 0, `${await width('#inspector')}`);
-await button('Inspector').click();
+ok('the inspector collapses to its rail', (await width('#inspector')) === 48, `${await width('#inspector')}`);
+await button('Expand inspector').click();
 await sleep(300);
-ok('the inspector comes back', (await width('#inspector')) > 100, `${await width('#inspector')}`);
+ok('the inspector rail brings it back', (await width('#inspector')) > 100, `${await width('#inspector')}`);
 
-// 7 — the context shelf: a drag shut reopens at the token default; a button hide reopens exactly
+// 7 — the context shelf: a drag shut lands on the strip; the strip reopens at the token default; a button collapse reopens exactly
 const contextBefore = await height('#context');
 await drag(CTX_SEP, 0, 400);
-ok('dragging the context shelf shut collapses it', (await height('#context')) === 0, `${contextBefore} → ${await height('#context')}`);
+ok('dragging the context shelf shut lands on its strip', (await height('#context')) === 32, `${contextBefore} → ${await height('#context')}`);
 ok('the toolbar button noticed the drag', (await button('Context shelf').getAttribute('aria-pressed')) === 'false');
-await button('Context shelf').click();
+await button('Expand context shelf').click();
 await sleep(300);
-ok('after a drag shut, the button reopens it at the token default, not the minimum', Math.abs((await height('#context')) - 180) <= 1, `${await height('#context')}`);
+ok('after a drag shut, the strip reopens it at the token default, not the minimum', Math.abs((await height('#context')) - 180) <= 1, `${await height('#context')}`);
 await drag(CTX_SEP, 0, -100);
 const contextDragged = await height('#context');
 await button('Context shelf').click();
 await sleep(300);
+ok('the toolbar collapses the shelf to its strip', (await height('#context')) === 32, `${await height('#context')}`);
 await button('Context shelf').click();
 await sleep(300);
-ok('after a button hide, show brings back the dragged height exactly', Math.abs((await height('#context')) - contextDragged) <= 1, `${contextDragged} → ${await height('#context')}`);
+ok('after a button collapse, expand brings back the dragged height exactly', Math.abs((await height('#context')) - contextDragged) <= 1, `${contextDragged} → ${await height('#context')}`);
 
 // 8 — keyboard: Tab reaches the separators in order, focus is painted, Enter toggles the drawer
 await page.locator('#top button').last().focus();
@@ -222,7 +244,7 @@ await page.keyboard.press('Tab');
 ok('the next Tab reaches the context shelf separator', (await focusedLabel()) === 'Resize context shelf', await focusedLabel());
 await page.keyboard.press('Enter');
 await sleep(300);
-ok('Enter on the separator hides the context shelf', (await height('#context')) === 0, `${await height('#context')}`);
+ok('Enter on the separator collapses the context shelf to its strip', (await height('#context')) === 32, `${await height('#context')}`);
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter again brings it back', (await height('#context')) > 100, `${await height('#context')}`);

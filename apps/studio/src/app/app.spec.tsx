@@ -11,9 +11,9 @@ describe('App', () => {
     expect(document.getElementById('top')).toBeTruthy();
   });
 
-  it('gives the top shelf a pressed button per hideable region, named by its visible text', () => {
+  it('gives the top shelf a pressed button per collapsible region, the shelf included, named by its visible text', () => {
     render(<App />);
-    for (const name of ['Navigation', 'Context shelf', 'Inspector']) {
+    for (const name of ['Top shelf', 'Navigation', 'Context shelf', 'Inspector']) {
       const button = screen.getByRole('button', { name });
       expect(button.textContent).toBe(name);
       expect(button.getAttribute('aria-pressed')).toBe('true');

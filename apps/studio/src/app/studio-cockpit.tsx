@@ -7,20 +7,24 @@ import { cockpitSizes } from '@creator-studio/tokens';
  * The writer's cockpit: five regions from three nested cockpits.
  *
  *   ┌──────────────────────────────────────────────┐
- *   │  TOP SHELF        pinned · hideable          │  root, vertical
+ *   │  TOP SHELF       pinned · collapses to a strip│  root, vertical
  *   ├──────┬───────────────────────────┬───────────┤
  *   │ NAV  │  MAIN SURFACE             │ INSPECTOR │  body, horizontal
- *   │      ├───────────────────────────┤           │
- *   │      │  CONTEXT SHELF  drag/hide │           │  center, vertical
+ *   │ rail ├───────────────────────────┤   rail    │
+ *   │      │  CONTEXT SHELF  drag · strip          │  center, vertical
  *   └──────┴───────────────────────────┴───────────┘
  *
- * The top shelf is chrome: fixed height, inert edge, hideable. Nav and
- * inspector are sidebars: draggable, collapsible, and they hold their pixel
- * width while the window resizes. A stored layout is a share of the window,
- * not pixels, so a reopen at another window size restores the share. The
- * context shelf is a drawer under the surface. Only the surface stretches.
- * Any region reaches the others' toggles through Cockpit.Regions, so the
- * toolbar can hide and show them.
+ * Nothing vanishes. A collapsed sidebar is a rail (48px) and a collapsed
+ * shelf is a strip (32px); each shows the region's compact content, which
+ * carries the way back. That is what lets a region hold the control that
+ * collapses it, the top shelf included.
+ *
+ * The top shelf is chrome: fixed height, inert edge. Nav and inspector are
+ * sidebars: draggable, collapsible, and they hold their pixel width while
+ * the window resizes. A stored layout is a share of the window, not pixels,
+ * so a reopen at another window size restores the share. The context shelf
+ * is a drawer under the surface. Only the surface stretches. Any region
+ * reaches the others' toggles through Cockpit.Regions.
  *
  * The body's minimums (nav + centre column + inspector) are the floor below
  * which the group has no slack: there the toggles report false and nothing
@@ -28,10 +32,10 @@ import { cockpitSizes } from '@creator-studio/tokens';
  */
 
 /**
- * The hideable regions. `top` has a toggle but no control yet, on purpose:
- * the toolbar lives in the shelf, and a button there would hide itself with
- * no route back (the shelf's edge is inert and has no keyboard stop). A
- * control for `top` must live outside the shelf, or come with a shortcut.
+ * The collapsible regions. Every one has a toggle, and every collapsed state
+ * shows compact content with its own expand control, so a control may live
+ * inside the region it collapses: the toolbar in the top shelf collapses the
+ * shelf, and the strip that remains brings it back.
  */
 export const STUDIO_REGIONS = ['top', 'nav', 'context', 'inspector'] as const;
 export type StudioRegion = (typeof STUDIO_REGIONS)[number];
@@ -45,9 +49,29 @@ export interface StudioCockpitProps {
   main: ReactNode;
   context: ReactNode;
   inspector: ReactNode;
+  /**
+   * What a region shows while collapsed: a strip for the shelves, a rail for
+   * the sidebars. Each must carry a control that expands the region again.
+   */
+  topStrip: ReactNode;
+  navRail: ReactNode;
+  contextStrip: ReactNode;
+  inspectorRail: ReactNode;
 }
 
-export function StudioCockpit({ projectId, store, top, nav, main, context, inspector }: StudioCockpitProps) {
+export function StudioCockpit({
+  projectId,
+  store,
+  top,
+  nav,
+  main,
+  context,
+  inspector,
+  topStrip,
+  navRail,
+  contextStrip,
+  inspectorRail,
+}: StudioCockpitProps) {
   const topToggle = usePanelToggle(cockpitSizes.topHeight);
   const navToggle = usePanelToggle(cockpitSizes.navDefault);
   const contextToggle = usePanelToggle(cockpitSizes.contextDefault);
@@ -73,8 +97,8 @@ export function StudioCockpit({ projectId, store, top, nav, main, context, inspe
   return (
     <Cockpit.Regions regions={regions}>
       <Cockpit projectId={projectId} store={store} orientation="vertical">
-        <Cockpit.Panel id="top" {...pinnedPanel(cockpitSizes.topHeight)} {...topToggle.panelProps}>
-          {top}
+        <Cockpit.Panel id="top" {...pinnedPanel(cockpitSizes.topHeight, cockpitSizes.strip)} {...topToggle.panelProps}>
+          {topToggle.collapsed ? topStrip : top}
         </Cockpit.Panel>
         {/* Draws the shelf's edge and refuses to be dragged; the panel is pinned anyway.
             Nameless on purpose: it is static, and a name would put an inoperable
@@ -87,17 +111,16 @@ export function StudioCockpit({ projectId, store, top, nav, main, context, inspe
               defaultSize={cockpitSizes.navDefault}
               minSize={cockpitSizes.navMin}
               collapsible
-              collapsedSize={cockpitSizes.collapsed}
+              collapsedSize={cockpitSizes.rail}
               groupResizeBehavior="preserve-pixel-size"
               {...navToggle.panelProps}
-              className="p-md"
             >
-              {nav}
+              {navToggle.collapsed ? navRail : nav}
             </Cockpit.Panel>
             <Cockpit.Separator aria-label="Resize navigation" />
             <Cockpit.Panel id="center" minSize={cockpitSizes.centerMinWidth}>
               <Cockpit projectId={projectId} store={store} group="center" orientation="vertical">
-                <Cockpit.Panel id="main" minSize={cockpitSizes.mainMinHeight} className="p-lg">
+                <Cockpit.Panel id="main" minSize={cockpitSizes.mainMinHeight}>
                   {main}
                 </Cockpit.Panel>
                 <Cockpit.Separator aria-label="Resize context shelf" onKeyDown={toggleContextOnEnter} />
@@ -106,11 +129,10 @@ export function StudioCockpit({ projectId, store, top, nav, main, context, inspe
                   defaultSize={cockpitSizes.contextDefault}
                   minSize={cockpitSizes.contextMin}
                   collapsible
-                  collapsedSize={cockpitSizes.collapsed}
+                  collapsedSize={cockpitSizes.strip}
                   {...contextToggle.panelProps}
-                  className="p-md"
                 >
-                  {context}
+                  {contextToggle.collapsed ? contextStrip : context}
                 </Cockpit.Panel>
               </Cockpit>
             </Cockpit.Panel>
@@ -120,12 +142,11 @@ export function StudioCockpit({ projectId, store, top, nav, main, context, inspe
               defaultSize={cockpitSizes.inspectorDefault}
               minSize={cockpitSizes.inspectorMin}
               collapsible
-              collapsedSize={cockpitSizes.collapsed}
+              collapsedSize={cockpitSizes.rail}
               groupResizeBehavior="preserve-pixel-size"
               {...inspectorToggle.panelProps}
-              className="p-md"
             >
-              {inspector}
+              {inspectorToggle.collapsed ? inspectorRail : inspector}
             </Cockpit.Panel>
           </Cockpit>
         </Cockpit.Panel>
