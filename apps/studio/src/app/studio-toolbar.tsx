@@ -39,7 +39,7 @@ function RegionButton({ region }: { region: StudioRegion }) {
       type="button"
       aria-pressed={!toggle.collapsed}
       onClick={toggle.toggle}
-      className="rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:bg-surface-muted aria-pressed:text-ink"
+      className="rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:border-ink aria-pressed:bg-surface-muted aria-pressed:text-ink"
     >
       {REGION_TITLES[region]}
     </button>

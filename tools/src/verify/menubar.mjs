@@ -33,8 +33,10 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const button = (name) => page.getByRole('button', { name, exact: true });
   const focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '');
   const state = (loc) => loc.getAttribute('data-state');
-  const contrast = (loc) =>
-    loc.evaluate((el) => {
+  // WCAG contrast of an element's text (`color` on its own backdrop) or of its outline
+  // (`borderTopColor` on the backdrop behind the element): the non-text 3:1 of 1.4.11 for state
+  const probe = (loc, of = 'color') =>
+    loc.evaluate((el, of) => {
       // canvas readback turns any CSS colour (oklch included) into un-premultiplied RGBA
       const rgba = (color) => {
         const g = Object.assign(document.createElement('canvas'), { width: 1, height: 1 }).getContext('2d');
@@ -46,10 +48,11 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       const lum = (c) => c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)).reduce((t, v, i) => t + v * [0.2126, 0.7152, 0.0722][i], 0);
       const cs = getComputedStyle(el);
       // the effective background: composite every ancestor's paint, top down, until one is opaque;
-      // a transparent or translucent layer alone would score against black and flatter light text
+      // a transparent or translucent layer alone would score against black and flatter light text.
+      // An outline sits on what is behind the element, so its walk starts at the parent.
       const layers = [];
       let painted = false;
-      for (let node = el; node; node = node.parentElement) {
+      for (let node = of === 'color' ? el : el.parentElement; node; node = node.parentElement) {
         const layer = rgba(getComputedStyle(node).backgroundColor);
         if (layer.alpha === 0) continue;
         painted = true;
@@ -58,11 +61,14 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       }
       let base = [255, 255, 255]; // nothing painted at all: the viewport's white
       for (const layer of layers.reverse()) base = layer.rgb.map((v, i) => v * layer.alpha + base[i] * (1 - layer.alpha));
-      const a = lum(rgba(cs.color).rgb);
+      const fg = rgba(cs[of]);
+      const a = lum(fg.rgb.map((v, i) => v * fg.alpha + base[i] * (1 - fg.alpha))); // a translucent foreground is what the eye sees of it
       const b = lum(base);
       const background = `rgb(${base.map(Math.round).join(', ')})`;
-      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs.color, background, painted };
-    });
+      return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], background, painted };
+    }, of);
+  const contrast = (loc) => probe(loc, 'color');
+  const edge = (loc) => probe(loc, 'borderTopColor');
   const theme = () => page.evaluate(() => document.documentElement.getAttribute('data-theme'));
   const themeKey = () => page.evaluate(() => localStorage.getItem('cs:theme'));
   const outline = (loc) =>
@@ -159,10 +165,18 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   await nav().click();
   await sleep(300);
   ok('choosing Navigation rails the nav and the toolbar button says so', (await width('#nav')) === 48 && (await button('Navigation').getAttribute('aria-pressed')) === 'false', `${await width('#nav')}px`);
-  const fill = (loc) => loc.evaluate((el) => getComputedStyle(el).backgroundColor);
-  const unpressedFill = await fill(button('Navigation'));
-  const pressedFill = await fill(button('Inspector'));
-  ok('a pressed toggle carries a fill an unpressed one lacks: state is not signalled by ink alone', unpressedFill !== pressedFill && (await button('Inspector').getAttribute('aria-pressed')) === 'true', `${unpressedFill} vs ${pressedFill}`);
+  // the pressed state's second channel: an outline that clears WCAG 1.4.11's 3:1 against the shelf, on the pressed button only
+  const pressedState = async (theme) => {
+    const on = await edge(button('Inspector'));
+    const off = await edge(button('Navigation'));
+    const offFill = await button('Navigation').evaluate((el) => getComputedStyle(el).backgroundColor);
+    ok(
+      `${theme} theme: a pressed toggle's outline clears 3:1 against the shelf and an unpressed one's does not: state is not signalled by ink alone`,
+      (await button('Inspector').getAttribute('aria-pressed')) === 'true' && on.painted && on.ratio >= 3 && off.ratio < 3 && offFill === 'rgba(0, 0, 0, 0)',
+      `pressed ${on.ratio.toFixed(2)}:1 (${on.color} on ${on.background}), unpressed ${off.ratio.toFixed(2)}:1, unpressed fill ${offFill}`,
+    );
+  };
+  await pressedState('light');
   ok('the menu closed on select', (await menus().count()) === 0);
   await openView();
   ok('reopened, Navigation is unchecked with an empty gutter', (await nav().getAttribute('aria-checked')) === 'false' && (await gutter()) === '', `"${await gutter()}"`);
@@ -266,6 +280,11 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const darkHeading = await contrast(heading());
   ok('dark theme: the muted heading clears AA (≥ 4.5:1)', darkHeading.painted && darkHeading.ratio >= 4.5, `${darkHeading.ratio.toFixed(2)}:1, ${darkHeading.color} on ${darkHeading.background}`);
   await closeAll();
+  await page.keyboard.press('Control+Meta+B'); // rail the nav so one toggle is unpressed
+  await sleep(300);
+  await pressedState('dark');
+  await page.keyboard.press('Control+Meta+B');
+  await sleep(300);
   await openView();
   await item('Theme').click();
   await page.locator('[role="menu"][data-menubar-sub]').waitFor({ state: 'visible' });

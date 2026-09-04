@@ -15,8 +15,10 @@
   --cs-p-linen: oklch(93% 0.008 95);
   /* muted ink. Constrained both ways: 50% clears AA on white, paper and linen (5.85, 5.51,
      4.90; 62% was 3.55 on white), and it must stay far enough from ink (2.74:1 now) for muted
-     text to recede. Anything that signals state with muted-vs-ink alone needs a second channel
-     (the region toggles also carry a fill). */
+     text to recede. Muted-vs-ink alone is under the 3:1 a state indicator needs (WCAG 1.4.11),
+     so anything that signals state that way needs a second channel: the region toggles carry an
+     ink outline when pressed (16.0:1 light, 14.2:1 dark against the shelf; the linen fill they
+     also take is 1.19:1 and is a chip, not the signal). The menubar harness measures it. */
   --cs-p-ash: oklch(50% 0.012 95);
   --cs-p-ink: oklch(24% 0.014 95);
   --cs-p-night: oklch(17% 0.012 260);
