@@ -150,6 +150,9 @@ importers:
       '@creator-studio/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@creator-studio/menubar':
+        specifier: workspace:*
+        version: link:../../packages/menubar
       '@creator-studio/shell':
         specifier: workspace:*
         version: link:../../packages/shell

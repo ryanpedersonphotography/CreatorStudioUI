@@ -60,9 +60,14 @@ export interface StudioCockpitProps {
   main: ReactNode;
   context: ReactNode;
   inspector: ReactNode;
+  /**
+   * Rendered inside the region context but outside every panel, so it outlives
+   * a collapsed region: keyboard bindings live here, never in the top shelf.
+   */
+  shortcuts?: ReactNode;
 }
 
-export function StudioCockpit({ projectId, store, top, nav, main, context, inspector }: StudioCockpitProps) {
+export function StudioCockpit({ projectId, store, top, nav, main, context, inspector, shortcuts }: StudioCockpitProps) {
   const topToggle = useFocusHandoff('top', usePanelToggle(cockpitSizes.topHeight));
   const navToggle = useFocusHandoff('nav', usePanelToggle(cockpitSizes.navDefault, useCollapsedMemory(store, projectId, 'nav')));
   const contextToggle = useFocusHandoff('context', usePanelToggle(cockpitSizes.contextDefault, useCollapsedMemory(store, projectId, 'context')));
@@ -87,6 +92,7 @@ export function StudioCockpit({ projectId, store, top, nav, main, context, inspe
 
   return (
     <Cockpit.Regions regions={regions}>
+      {shortcuts}
       <Cockpit projectId={projectId} orientation="vertical">
         <Cockpit.Panel id="top" {...pinnedPanel(cockpitSizes.topHeight, cockpitSizes.strip)} {...topToggle.panelProps}>
           {topToggle.collapsed ? <Strip region="top" /> : top}
@@ -169,6 +175,9 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
  * fall to the document. When focus was inside the region as the call was
  * made, it moves to the new content's first control once rendered, or to the
  * content's landmark when it has none. A call that did not act moves nothing.
+ * "Inside the region" also covers a menu the region owns: the top shelf's
+ * dropdowns render in a body portal, outside `#top`, and tag themselves with
+ * `data-region="top"` so a command chosen from one counts.
  */
 function useFocusHandoff(id: StudioRegion, toggle: PanelToggle): PanelToggle {
   const pending = useRef(false);
@@ -176,7 +185,9 @@ function useFocusHandoff(id: StudioRegion, toggle: PanelToggle): PanelToggle {
   const handoff = useMemo<PanelToggle>(() => {
     const noting = (act: () => boolean) => () => {
       const panel = document.getElementById(id);
-      pending.current = panel !== null && panel.contains(document.activeElement);
+      const active = document.activeElement;
+      const owned = active instanceof HTMLElement && active.closest<HTMLElement>('[data-region]')?.dataset.region === id;
+      pending.current = (panel !== null && panel.contains(active)) || owned;
       const acted = act();
       if (!acted) pending.current = false;
       return acted;

@@ -1,22 +1,26 @@
 import { createBrowserLayoutStore } from '@creator-studio/adapter-local';
 import { StudioCockpit } from './studio-cockpit.js';
 import { LANDMARK_FOCUS, REGION_TITLES } from './studio-regions.js';
+import { StudioShortcuts } from './studio-shortcuts.js';
 import { StudioToolbar } from './studio-toolbar.js';
 
 /*
  * Composition root. This is the one place an adapter meets a port: the shell
- * asks for a LayoutStore and the app decides it is the browser's localStorage.
- * Swap the adapter here and nothing under packages/ changes.
+ * asks for a LayoutStore, the toolbar for a PreferenceStore, and the app
+ * decides both are the browser's localStorage. Swap the adapter here and
+ * nothing under packages/ changes. main.tsx reads the same store once before
+ * the first render to stamp the remembered theme.
  */
-const layoutStore = createBrowserLayoutStore();
+export const studioStore = createBrowserLayoutStore();
 const PROJECT_ID = 'default';
 
 export function App() {
   return (
     <StudioCockpit
       projectId={PROJECT_ID}
-      store={layoutStore}
-      top={<StudioToolbar />}
+      store={studioStore}
+      shortcuts={<StudioShortcuts />}
+      top={<StudioToolbar store={studioStore} projectId={PROJECT_ID} />}
       nav={<Region title={REGION_TITLES.nav} />}
       main={<Region title="Manuscript" prose />}
       context={<Region title={REGION_TITLES.context} />}

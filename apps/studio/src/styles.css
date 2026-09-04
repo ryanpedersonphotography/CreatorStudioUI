@@ -1,7 +1,28 @@
 @import 'tailwindcss';
 @import '@creator-studio/tokens/tokens.css';
+@import '@creator-studio/menubar/menubar.css';
 /* Vite's root is this app, so tell Tailwind to scan the packages it composes. */
 @source '../../../packages';
+
+/* The menubar's contract, mapped from the studio's tokens. On :root because the menus portal to body. */
+:root {
+  --menubar-bg: var(--cs-surface);
+  --menubar-fg: var(--cs-ink);
+  --menubar-muted: var(--cs-ink-muted);
+  --menubar-border: var(--cs-border);
+  --menubar-border-width: var(--cs-line);
+  --menubar-highlight-bg: var(--cs-accent);
+  --menubar-highlight-fg: var(--cs-surface);
+  --menubar-focus: var(--cs-focus);
+  --menubar-focus-ring: var(--cs-focus-ring);
+  --menubar-radius: var(--cs-radius-sm);
+  --menubar-font: var(--cs-font-ui);
+  --menubar-size: var(--cs-text-sm);
+  --menubar-pad-x: var(--cs-space-sm);
+  --menubar-pad-y: var(--cs-space-xs);
+  --menubar-gap: var(--cs-space-md);
+  --menubar-motion: var(--cs-motion-fast);
+}
 
 html,
 body,

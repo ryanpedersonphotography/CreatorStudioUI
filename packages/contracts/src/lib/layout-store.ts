@@ -9,7 +9,8 @@
  * state, not domain data; manuscript and cast data will get their own typed
  * ports rather than reuse this one. A browser `localStorage` already satisfies
  * it structurally. The name is the point: UI code depends on this port, never
- * on where the bytes go.
+ * on where the bytes go. User preferences (the theme) share the shape under
+ * their own name, `PreferenceStore` in preferences.ts, with their own keys.
  */
 export interface LayoutStore {
   getItem(key: string): string | null;

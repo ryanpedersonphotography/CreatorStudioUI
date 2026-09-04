@@ -444,7 +444,7 @@ await sleep(300);
 ok('collapsing the shelf from its own toolbar moves focus to the strip control', (await focusedLabel()) === 'Expand top shelf', await focusedLabel());
 await page.keyboard.press('Enter');
 await sleep(300);
-ok('expanding from the strip moves focus into the returned toolbar', (await focusedLabel()) === 'Top shelf', await focusedLabel());
+ok('expanding from the strip moves focus into the returned toolbar, on its first control (the File menu)', (await focusedLabel()) === 'File', await focusedLabel());
 await button('Navigation').focus();
 await page.keyboard.press('Enter');
 await sleep(300);
@@ -483,10 +483,10 @@ ok('expanding from the rail keeps focus inside the nav, on its landmark', (await
 // 9 — only cockpit groups in storage, all under our key
 const finalKeys = await keys();
 ok(
-  'body and center groups are remembered, and every key names a cockpit group (a conditional set may extend it) or a region\'s collapsed bit',
+  'body and center groups are remembered, and every key names a cockpit group (a conditional set may extend it), a region\'s collapsed bit, or the theme',
   finalKeys.includes(key('body')) &&
     finalKeys.includes(key('center')) &&
-    finalKeys.every((k) => k.startsWith('cs:collapsed:default:') || ['root', 'body', 'center'].some((g) => k === key(g) || k.startsWith(`${key(g)}:`))),
+    finalKeys.every((k) => k === 'cs:theme' || k.startsWith('cs:collapsed:default:') || ['root', 'body', 'center'].some((g) => k === key(g) || k.startsWith(`${key(g)}:`))),
   finalKeys.join(', '),
 );
 ok('still no console or page errors', errors.length === 0, errors.join(' | '));

@@ -13,6 +13,7 @@
     "@creator-studio/contracts": "workspace:*",
     "@creator-studio/shell": "workspace:*",
     "@creator-studio/adapter-local": "workspace:*",
-    "@creator-studio/tokens": "workspace:*"
+    "@creator-studio/tokens": "workspace:*",
+    "@creator-studio/menubar": "workspace:*"
   }
 }

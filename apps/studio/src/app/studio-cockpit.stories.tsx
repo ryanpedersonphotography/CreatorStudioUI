@@ -3,6 +3,7 @@ import { useCockpitRegion } from '@creator-studio/shell';
 import { useEffect, useRef } from 'react';
 import { StudioCockpit } from './studio-cockpit.js';
 import { REGION_TITLES } from './studio-regions.js';
+import { StudioShortcuts } from './studio-shortcuts.js';
 import { StudioToolbar } from './studio-toolbar.js';
 
 // A story keeps its layout in memory, so nothing it does leaks into the app's localStorage.
@@ -13,13 +14,19 @@ const store = {
   removeItem: (k: string) => void bag.delete(k),
 };
 
-/** The writer's cockpit as the app composes it: the real preset and the real toolbar. */
+/**
+ * The writer's cockpit as the app composes it: the real preset, the real toolbar
+ * and its menus. Ladle loads the menubar skin without the studio's --menubar-*
+ * bridge, so the menus show system colours here; the app screenshot shows the
+ * bridged look.
+ */
 export const WritersCockpit: Story = () => (
   <div className="h-dvh">
     <StudioCockpit
       projectId="story"
       store={store}
-      top={<StudioToolbar />}
+      shortcuts={<StudioShortcuts />}
+      top={<StudioToolbar store={store} projectId="story" />}
       nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
       main={<Placeholder prose>Manuscript</Placeholder>}
       context={<Placeholder>{REGION_TITLES.context}</Placeholder>}
@@ -34,7 +41,7 @@ export const CompactStates: Story = () => (
     <StudioCockpit
       projectId="story-compact"
       store={store}
-      top={<StudioToolbar />}
+      top={<StudioToolbar store={store} projectId="story-compact" />}
       nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
       main={
         <>

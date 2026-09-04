@@ -37,6 +37,9 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../packages/menubar/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/tokens/tsconfig.lib.json"
     },
     {
