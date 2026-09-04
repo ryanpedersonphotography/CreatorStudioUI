@@ -98,7 +98,9 @@ describe('Cockpit', () => {
 });
 
 describe('a cockpit without a store', () => {
-  it('keeps its layout for the session only and touches no store', () => {
+  it('renders, and neither reads nor writes the browser storage', () => {
+    const read = vi.spyOn(Storage.prototype, 'getItem');
+    const write = vi.spyOn(Storage.prototype, 'setItem');
     const { container } = render(
       <Cockpit projectId="demo">
         <Cockpit.Panel id="one">One</Cockpit.Panel>
@@ -108,6 +110,10 @@ describe('a cockpit without a store', () => {
     );
     expect(container.querySelector('#one')).toBeTruthy();
     expect(container.querySelector('#two')).toBeTruthy();
+    expect(read).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+    read.mockRestore();
+    write.mockRestore();
   });
 });
 

@@ -44,6 +44,9 @@
     },
     {
       "path": "../../packages/shell/tsconfig.lib.json"
+    },
+    {
+      "path": "../../packages/contracts/tsconfig.lib.json"
     }
   ]
 }

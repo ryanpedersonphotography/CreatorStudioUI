@@ -29,3 +29,14 @@ export interface LayoutStore {
 export function layoutKey(projectId: string, group: string, panelIds: readonly string[] = []): string {
   return ['cs:layout', projectId, group, ...panelIds].join(':');
 }
+
+/**
+ * Storage key for whether the user collapsed one panel: `cs:collapsed:<projectId>:<panelId>`.
+ * Kept apart from the layout keys on purpose. A layout is a share of the group
+ * and is validated against the current window on mount, so a share that was
+ * open can come back collapsed at another size; this bit records intent, so
+ * the shell can tell a clamp from a collapse and reopen the clamp.
+ */
+export function collapsedKey(projectId: string, panelId: string): string {
+  return ['cs:collapsed', projectId, panelId].join(':');
+}

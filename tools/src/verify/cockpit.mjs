@@ -145,7 +145,7 @@ const afterDrag = await keys();
 ok('the body group is written under the port key', afterDrag.includes(key('body')), afterDrag.join(', '));
 ok(
   'every key is ours; the library prefix never reaches storage',
-  afterDrag.length > 0 && afterDrag.every((k) => k.startsWith(`cs:layout:${PROJECT}:`)),
+  afterDrag.length > 0 && afterDrag.every((k) => k.startsWith(`cs:layout:${PROJECT}:`) || k.startsWith(`cs:collapsed:${PROJECT}:`)),
   afterDrag.join(', '),
 );
 await page.reload({ waitUntil: 'networkidle' });
@@ -197,6 +197,31 @@ ok(
   const toolbar = await page2.getByRole('button', { name: 'Top shelf', exact: true }).count();
   ok('a short window mounts the shelf expanded with its toolbar, whatever share an older window stored', topShort === 48 && toolbar === 1, `${topShort}px, ${toolbar} toolbar`);
   await short.close();
+}
+
+// 5c — the same clamp hits any collapsible region. Nav dragged to its 160px minimum on a 1440px
+// window stores 11.127%: 100px on a 900px window, under the 104px collapse midpoint, so the library
+// mounts it as a rail. The region's remembered collapsed bit tells a clamp from a collapse.
+{
+  const draggedNarrow = '{"nav":11.127,"center":64.873,"inspector":24}';
+  const clamped = await browser.newContext({ viewport: { width: 900, height: 800 } });
+  await clamped.addInitScript((body) => localStorage.setItem('cs:layout:default:body', body), draggedNarrow);
+  const page3 = await clamped.newPage();
+  await page3.goto(BASE, { waitUntil: 'networkidle' });
+  await sleep(300);
+  const navClamped = Math.round((await page3.locator('#nav').boundingBox())?.width ?? -1);
+  const pressed = await page3.getByRole('button', { name: 'Navigation', exact: true }).getAttribute('aria-pressed');
+  const rails = await page3.getByRole('button', { name: 'Expand navigation', exact: true }).count();
+  ok('a nav the user left open at its minimum mounts open on a narrower window, not as a rail', navClamped === 160 && pressed === 'true' && rails === 0, `${navClamped}px, pressed=${pressed}, ${rails} rail`);
+  await clamped.close();
+  const remembered = await browser.newContext({ viewport: { width: 900, height: 800 } });
+  await remembered.addInitScript((body) => { localStorage.setItem('cs:layout:default:body', body); localStorage.setItem('cs:collapsed:default:nav', '1'); }, draggedNarrow);
+  const page4 = await remembered.newPage();
+  await page4.goto(BASE, { waitUntil: 'networkidle' });
+  await sleep(300);
+  const navRemembered = Math.round((await page4.locator('#nav').boundingBox())?.width ?? -1);
+  ok('a nav the user collapsed stays a rail: memory only ever reopens', navRemembered === 48, `${navRemembered}px`);
+  await remembered.close();
 }
 
 // 6 — sidebars collapse to rails; a rail holds its pixels; expand puts back exactly what collapse took
@@ -274,6 +299,8 @@ ok(
   'their expand controls come back with them',
   (await page.getByRole('button', { name: /^Expand (navigation|context shelf|inspector)$/ }).count()) === 3,
 );
+const bits = () => page.evaluate(() => ['nav', 'context', 'inspector'].map((r) => localStorage.getItem(`cs:collapsed:default:${r}`)).join(''));
+ok('the collapses were remembered as intent under their own keys', (await bits()) === '111', await bits());
 ok(
   'the top shelf mounts expanded after a reload: its collapse is session-scoped',
   (await height('#top')) === 48 && (await button('Top shelf').count()) === 1,
@@ -283,6 +310,7 @@ for (const name of ['Expand navigation', 'Expand context shelf', 'Expand inspect
   await button(name).click();
   await sleep(200);
 }
+ok('and the reopens were remembered too', (await bits()) === '000', await bits());
 
 // 8 — keyboard: Tab reaches the separators in order, focus is painted, Enter toggles the drawer
 await page.locator('#top button').last().focus();
@@ -298,12 +326,13 @@ const ringUnderHover = await outline(NAV_SEP);
 ok('the ring survives the pointer hovering the same separator', ringUnderHover.style !== 'none' && ringUnderHover.width >= 1, `${ringUnderHover.style} ${ringUnderHover.width}px`);
 await page.keyboard.press('Tab');
 ok('the next Tab reaches the context shelf separator', (await focusedLabel()) === 'Resize context shelf', await focusedLabel());
+const contextBeforeEnter = await height('#context');
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter on the separator collapses the context shelf to its strip', (await height('#context')) === 32, `${await height('#context')}`);
 await page.keyboard.press('Enter');
 await sleep(300);
-ok('Enter again brings it back', (await height('#context')) > 100, `${await height('#context')}`);
+ok('Enter again brings it back at exactly the height it had', Math.abs((await height('#context')) - contextBeforeEnter) <= 1, `${contextBeforeEnter} → ${await height('#context')}`);
 
 // 8c — focus travels with a region whose content swaps under the control that was pressed
 const focusWithin = (sel) => page.evaluate((s) => document.querySelector(s)?.contains(document.activeElement) === true, sel);
@@ -321,7 +350,8 @@ ok('collapsing nav from the toolbar keeps focus on the toolbar button', (await f
 await button('Expand navigation').focus();
 await page.keyboard.press('Enter');
 await sleep(300);
-ok('expanding from the rail keeps focus inside the nav, on its landmark', (await focusWithin('#nav')) && (await width('#nav')) > 100, `${await focusedLabel()} in nav: ${await focusWithin('#nav')}`);
+const focusedLandmark = () => page.evaluate(() => { const a = document.activeElement; return `${a?.tagName}[${a?.getAttribute('aria-label')}]`; });
+ok('expanding from the rail keeps focus inside the nav, on its landmark', (await focusedLandmark()) === 'SECTION[Navigation]' && (await width('#nav')) > 100, `${await focusedLandmark()} at ${await width('#nav')}px`);
 
 // 8b — a layout stored at one window size reopens at another as a share of the window, not as pixels.
 // The library persists percentages; "holds its pixels" is a promise about live resizes only. A second
@@ -351,10 +381,10 @@ ok('expanding from the rail keeps focus inside the nav, on its landmark', (await
 // 9 — only cockpit groups in storage, all under our key
 const finalKeys = await keys();
 ok(
-  'body and center groups are remembered, and every key names a cockpit group (a conditional set may extend it)',
+  'body and center groups are remembered, and every key names a cockpit group (a conditional set may extend it) or a region\'s collapsed bit',
   finalKeys.includes(key('body')) &&
     finalKeys.includes(key('center')) &&
-    finalKeys.every((k) => ['root', 'body', 'center'].some((g) => k === key(g) || k.startsWith(`${key(g)}:`))),
+    finalKeys.every((k) => k.startsWith('cs:collapsed:default:') || ['root', 'body', 'center'].some((g) => k === key(g) || k.startsWith(`${key(g)}:`))),
   finalKeys.join(', '),
 );
 ok('still no console or page errors', errors.length === 0, errors.join(' | '));

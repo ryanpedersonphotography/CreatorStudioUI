@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { cockpitSizes } from '@creator-studio/tokens';
-import { usePanelToggle } from './use-panel-toggle.js';
+import { usePanelToggle, type CollapsedMemory } from './use-panel-toggle.js';
 
 /*
  * jsdom never measures a layout, so the library's collapse() is inert there.
@@ -24,9 +24,14 @@ function fakeHandle(collapsed = false, stuck = false) {
 
 type AttachRef = (handle: PanelImperativeHandle | null) => void;
 
-function mount(restoreSize?: (typeof cockpitSizes)[keyof typeof cockpitSizes], collapsed = false, stuck = false) {
+function fakeMemory(remembered: boolean | null) {
+  const memory: CollapsedMemory = { read: vi.fn(() => remembered), write: vi.fn() };
+  return memory;
+}
+
+function mount(restoreSize?: (typeof cockpitSizes)[keyof typeof cockpitSizes], collapsed = false, stuck = false, memory?: CollapsedMemory) {
   const { handle, spies, state } = fakeHandle(collapsed, stuck);
-  const rendered = renderHook(() => usePanelToggle(restoreSize));
+  const rendered = renderHook(() => usePanelToggle(restoreSize, memory));
   act(() => (rendered.result.current.panelProps.panelRef as AttachRef)(handle));
   /** What the library does after a drag: report the new size through onResize. */
   const dragTo = (isCollapsed: boolean) => {
@@ -142,6 +147,65 @@ describe('usePanelToggle', () => {
     act(() => result.current.expand());
     expect(spies.resize).toHaveBeenCalledWith(cockpitSizes.navDefault);
     expect(spies.expand).not.toHaveBeenCalled();
+  });
+
+  describe('with a memory', () => {
+    it('reopens a panel that mounted collapsed when memory says the user left it open, or knows nothing', () => {
+      for (const remembered of [false, null]) {
+        const memory = fakeMemory(remembered);
+        const { result, spies } = mount(cockpitSizes.navDefault, true, false, memory);
+        expect(spies.expand).toHaveBeenCalledTimes(1);
+        expect(result.current.collapsed).toBe(false);
+        // The mount itself is not a transition the user made.
+        expect(memory.write).not.toHaveBeenCalled();
+      }
+    });
+
+    it('leaves a panel collapsed when memory says the user collapsed it', () => {
+      const memory = fakeMemory(true);
+      const { result, spies } = mount(cockpitSizes.navDefault, true, false, memory);
+      expect(spies.expand).not.toHaveBeenCalled();
+      expect(result.current.collapsed).toBe(true);
+    });
+
+    it('never collapses a panel that mounted open, whatever memory says', () => {
+      const { result, spies } = mount(cockpitSizes.navDefault, false, false, fakeMemory(true));
+      expect(spies.collapse).not.toHaveBeenCalled();
+      expect(result.current.collapsed).toBe(false);
+    });
+
+    it('writes each transition the user makes: buttons and drags, after the mount', () => {
+      const memory = fakeMemory(false);
+      const { result, dragTo } = mount(cockpitSizes.navDefault, false, false, memory);
+      act(() => void result.current.collapse());
+      expect(memory.write).toHaveBeenLastCalledWith(true);
+      act(() => void result.current.expand());
+      expect(memory.write).toHaveBeenLastCalledWith(false);
+      dragTo(true);
+      expect(memory.write).toHaveBeenLastCalledWith(true);
+      expect(memory.write).toHaveBeenCalledTimes(3);
+    });
+
+    it('a collapse() issued before the mount settles is intent: the mount does not undo it', () => {
+      const memory = fakeMemory(null);
+      const { handle, spies } = fakeHandle();
+      const rendered = renderHook(() => usePanelToggle(cockpitSizes.navDefault, memory));
+      act(() => {
+        // A child's effect attaches the handle and collapses in the same commit.
+        (rendered.result.current.panelProps.panelRef as AttachRef)(handle);
+      });
+      act(() => void rendered.result.current.collapse());
+      expect(spies.expand).not.toHaveBeenCalled();
+      expect(rendered.result.current.collapsed).toBe(true);
+      expect(memory.write).toHaveBeenLastCalledWith(true);
+    });
+
+    it('a reopen that could not act leaves memory alone, so the clamp is retried next mount', () => {
+      const memory = fakeMemory(false);
+      const { result } = mount(cockpitSizes.navDefault, true, true, memory);
+      expect(result.current.collapsed).toBe(true);
+      expect(memory.write).not.toHaveBeenCalled();
+    });
   });
 
   it('hands the panel exactly the two props it must spread', () => {

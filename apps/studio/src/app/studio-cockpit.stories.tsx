@@ -34,17 +34,27 @@ export const CompactStates: Story = () => (
     <StudioCockpit
       projectId="story-compact"
       store={store}
-      top={<CollapseAllOnMount />}
+      top={<StudioToolbar />}
       nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
-      main={<Placeholder prose>Manuscript</Placeholder>}
+      main={
+        <>
+          <CollapseAll />
+          <Placeholder prose>Manuscript</Placeholder>
+        </>
+      }
       context={<Placeholder>{REGION_TITLES.context}</Placeholder>}
       inspector={<Placeholder>{REGION_TITLES.inspector}</Placeholder>}
     />
   </div>
 );
 
-/** Renders the toolbar and, once every panel has attached, collapses all four regions one time. */
-function CollapseAllOnMount() {
+/**
+ * Once every panel has attached, collapses all four regions one time. It lives
+ * in the manuscript, the one region that never collapses: rendered inside a
+ * region it collapses, it would unmount with that region and, on expand, mount
+ * again with a fresh memory and slam everything shut a second time.
+ */
+function CollapseAll() {
   const top = useCockpitRegion('top');
   const nav = useCockpitRegion('nav');
   const context = useCockpitRegion('context');
@@ -52,11 +62,10 @@ function CollapseAllOnMount() {
   const done = useRef(false);
   useEffect(() => {
     if (done.current) return;
-    // The shelf goes last: collapsing it unmounts this component.
-    const acted = [nav, context, inspector].map((region) => region.collapsed || region.collapse());
-    if (acted.every(Boolean) && top.collapse()) done.current = true;
+    const acted = [nav, context, inspector, top].map((region) => region.collapsed || region.collapse());
+    if (acted.every(Boolean)) done.current = true;
   }, [top, nav, context, inspector]);
-  return <StudioToolbar />;
+  return null;
 }
 
 function Placeholder({ children, prose = false }: { children: string; prose?: boolean }) {

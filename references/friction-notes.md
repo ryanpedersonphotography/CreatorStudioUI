@@ -43,11 +43,14 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   rendered story; screenshot the built output (`ladle preview`) when stories change.
 - **2026-09-04** — On mount the panel library validates a *stored* layout (percentages) against
   constraints derived from the *current* group size, without the pixel correction it applies on live
-  resizes. A pinned 48px shelf stored as 5.3% of a 900px window mounts collapsed on any window shorter
-  than ~750px once its collapsed size is 32px (the collapse midpoint moved from 24px to 40px). Live
-  resizing never shows it. The root group is therefore session-only (`Cockpit` without a `store`);
-  the harness seeds a stale share into a 740px-tall context to keep it that way. Persisting the shelf's
-  collapsed bit under its own key is the door if that ever matters.
+  resizes. Any collapsible panel whose stored share lands under `(collapsedSize + minSize) / 2` at the
+  new size mounts collapsed: a pinned 48px shelf stored as 5.3% of a 900px window on any window under
+  ~750px, a nav dragged to its 160px minimum at 1440px (11.1%) on any window under ~935px. Live
+  resizing never shows it, and a rail-sized `collapsedSize` raises every midpoint, which is what
+  exposed it. Two fixes: the root group is session-only (`Cockpit` without a `store`), and the
+  persisted regions remember whether the user collapsed them under `cs:collapsed:<project>:<panel>`
+  (`CollapsedMemory` on `usePanelToggle`), reconciled on mount and only ever reopening. The harness
+  seeds both cases (§5b shelf at 740px tall, §5c nav at 900px wide).
 - **2026-09-04** — A control that unmounts itself on activation (a toolbar button that collapses the
   shelf it lives in; an expand button inside a rail) drops keyboard focus to the document. The preset
   wraps each toggle so that when focus was inside the region at the call, it moves to the new

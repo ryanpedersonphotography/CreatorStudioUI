@@ -1,5 +1,5 @@
 import { useCockpitRegion } from '@creator-studio/shell';
-import { REGION_TITLES, type StudioRegion } from './studio-regions.js';
+import { LANDMARK_FOCUS, REGION_TITLES, type StudioRegion } from './studio-regions.js';
 
 /*
  * What a collapsed region shows. A rail is the 48px column a sidebar keeps;
@@ -27,7 +27,7 @@ function ExpandButton({ region }: { region: StudioRegion }) {
 export function Rail({ region }: { region: Extract<StudioRegion, 'nav' | 'inspector'> }) {
   const title = REGION_TITLES[region];
   return (
-    <section aria-label={title} className="flex h-full flex-col items-center gap-sm py-sm text-sm text-ink-muted">
+    <section aria-label={title} tabIndex={-1} className={`flex h-full flex-col items-center gap-sm py-sm text-sm text-ink-muted ${LANDMARK_FOCUS}`}>
       <ExpandButton region={region} />
       <span aria-hidden="true" className="font-medium uppercase">
         {title[0]}
@@ -39,7 +39,7 @@ export function Rail({ region }: { region: Extract<StudioRegion, 'nav' | 'inspec
 export function Strip({ region }: { region: Extract<StudioRegion, 'top' | 'context'> }) {
   const title = REGION_TITLES[region];
   return (
-    <section aria-label={title} className="flex h-full items-center gap-sm px-md text-sm text-ink-muted">
+    <section aria-label={title} tabIndex={-1} className={`flex h-full items-center gap-sm px-md text-sm text-ink-muted ${LANDMARK_FOCUS}`}>
       <span className="font-medium uppercase tracking-wide">{title}</span>
       <ExpandButton region={region} />
     </section>

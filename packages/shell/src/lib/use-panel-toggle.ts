@@ -3,6 +3,19 @@ import { usePanelCallbackRef, type OnPanelResize } from 'react-resizable-panels'
 import type { PanelLength } from '@creator-studio/tokens';
 import type { CockpitPanelBinding } from './cockpit.js';
 
+/**
+ * Where a panel's collapsed-or-not is remembered between mounts. A stored
+ * layout already holds the collapsed share, but the library validates that
+ * share against the *current* group size on mount, so a panel the user left
+ * open can come up collapsed at another window size. This bit records intent:
+ * with it the hook can tell a clamp from a collapse and reopen the clamp.
+ */
+export interface CollapsedMemory {
+  /** true: the user collapsed it. false: the user left it open. null: nothing remembered. */
+  read(): boolean | null;
+  write(collapsed: boolean): void;
+}
+
 export interface PanelToggle {
   /**
    * True while the panel sits at its collapsed size: gone, or a rail or strip
@@ -49,37 +62,63 @@ export interface PanelToggle {
  *   moved, which is what happens once the group has no slack. The group's
  *   store answers synchronously, so collapse() and expand() read the panel back
  *   and report whether they acted instead of assuming.
+ * - With a `memory`, the mount reads it before trusting the library: a panel
+ *   that comes up collapsed while memory says the user left it open was
+ *   clamped by the stored share's validation, and is reopened. Memory is
+ *   written on transitions only, the buttons' and the user's drags, never
+ *   from the mount, so a reopen that could not act (no slack) does not turn
+ *   the clamp into a remembered collapse. Memory only ever reopens; it never
+ *   collapses a panel the layout mounted open.
  */
-export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
+export function usePanelToggle(restoreSize?: PanelLength, memory?: CollapsedMemory): PanelToggle {
   const [handle, setHandle] = usePanelCallbackRef();
   const [collapsed, setCollapsed] = useState(false);
   // Set by a collapse() that took effect, cleared the moment the panel is seen open
   // again. A collapse the user dragged never sets it, which is how expand() knows
   // which way back.
   const collapsedByUs = useRef(false);
+  // True once the mount has reconciled the attached handle against memory. Until
+  // then nothing is written: the library's first onResize comes from a
+  // ResizeObserver and can land on either side of that effect.
+  const settled = useRef(false);
 
-  /** Read the panel and mirror it into state; returns whether it is collapsed. */
-  const sync = useCallback((): boolean => {
-    const next = handle?.isCollapsed();
-    if (next === undefined) return false;
-    if (!next) collapsedByUs.current = false;
-    setCollapsed(next);
-    return next;
-  }, [handle]);
+  /**
+   * Read the panel and mirror it into state; returns whether it is collapsed.
+   * `record` writes the state to memory: true for a transition the user made.
+   */
+  const sync = useCallback(
+    (record: boolean): boolean => {
+      const next = handle?.isCollapsed();
+      if (next === undefined) return false;
+      if (!next) collapsedByUs.current = false;
+      if (record) memory?.write(next);
+      setCollapsed(next);
+      return next;
+    },
+    [handle, memory],
+  );
 
   // The effect catches the handle attaching, so a layout restored collapsed
   // shows the right state on mount; onResize catches the user dragging it shut.
   useEffect(() => {
-    sync();
-  }, [sync]);
+    settled.current = false;
+    if (!handle) return;
+    // A collapse that already came through collapse() (a child's effect runs
+    // before this one) is intent, not a clamp. expand() with nothing recorded
+    // lands on the panel's minimum: the nearest open size to a share that was
+    // clamped for falling under the collapse midpoint.
+    if (memory && handle.isCollapsed() && !collapsedByUs.current && memory.read() !== true) handle.expand();
+    sync(false);
+    settled.current = true;
+  }, [handle, memory, sync]);
 
-  const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(), [sync]);
+  const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(settled.current), [sync]);
 
   const collapse = useCallback((): boolean => {
     if (!handle || handle.isCollapsed()) return false;
     collapsedByUs.current = true;
     handle.collapse();
-    const collapsed = sync();
+    const collapsed = sync(true);
     if (!collapsed) collapsedByUs.current = false;
     return collapsed;
   }, [handle, sync]);
@@ -90,7 +129,7 @@ export function usePanelToggle(restoreSize?: PanelLength): PanelToggle {
     else handle.resize(restoreSize);
     // sync() clears collapsedByUs itself once the panel is seen open; an expand()
     // that could not act keeps the memory for the next attempt.
-    return !sync();
+    return !sync(true);
   }, [handle, restoreSize, sync]);
 
   const toggle = useCallback((): boolean => {

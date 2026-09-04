@@ -1,1 +1,1 @@
-export { layoutKey, type LayoutStore } from './lib/layout-store.js';
+export { collapsedKey, layoutKey, type LayoutStore } from './lib/layout-store.js';

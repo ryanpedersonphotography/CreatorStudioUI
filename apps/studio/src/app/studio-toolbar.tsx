@@ -1,20 +1,22 @@
 import { useCockpitRegion } from '@creator-studio/shell';
-import { REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
+import { LANDMARK_FOCUS, REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
 
 /**
- * The top shelf's controls. Each button's visible text is its accessible
- * name, and `aria-pressed` carries whether that region is expanded. The
- * shelf may collapse itself: the strip the preset leaves behind carries the
- * way back, and focus travels with it.
+ * The top shelf's content: a landmark named like the region, so the shelf is
+ * "Top shelf" to a screen reader whether it shows this toolbar or its strip.
+ * Each button's visible text is its accessible name, and `aria-pressed`
+ * carries whether that region is expanded. The shelf may collapse itself:
+ * the strip the preset leaves behind carries the way back, and focus travels
+ * with it.
  */
 export function StudioToolbar() {
   return (
-    <div className="flex h-full items-center gap-sm px-md text-sm">
+    <section aria-label={REGION_TITLES.top} tabIndex={-1} className={`flex h-full items-center gap-sm px-md text-sm ${LANDMARK_FOCUS}`}>
       <span className="mr-sm font-medium">Studio</span>
       {STUDIO_REGIONS.map((region) => (
         <RegionButton key={region} region={region} />
       ))}
-    </div>
+    </section>
   );
 }
 

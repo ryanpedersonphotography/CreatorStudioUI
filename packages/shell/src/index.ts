@@ -8,5 +8,5 @@ export {
   type CockpitSeparatorProps,
   type PanelLength,
 } from './lib/cockpit.js';
-export { usePanelToggle, type PanelToggle } from './lib/use-panel-toggle.js';
+export { usePanelToggle, type CollapsedMemory, type PanelToggle } from './lib/use-panel-toggle.js';
 export { useCockpitRegion, type CockpitRegionMap } from './lib/cockpit-regions.js';

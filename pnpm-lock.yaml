@@ -144,6 +144,9 @@ importers:
       '@creator-studio/adapter-local':
         specifier: workspace:*
         version: link:../../packages/adapters/local
+      '@creator-studio/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@creator-studio/shell':
         specifier: workspace:*
         version: link:../../packages/shell

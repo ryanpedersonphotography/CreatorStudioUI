@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { layoutKey, type LayoutStore } from './layout-store.js';
+import { collapsedKey, layoutKey, type LayoutStore } from './layout-store.js';
 
 describe('layoutKey', () => {
   it('namespaces by project and group', () => {
@@ -29,5 +29,12 @@ describe('LayoutStore', () => {
     store.removeItem('a');
     expect(store.getItem('a')).toBeNull();
     expect(() => store.removeItem('missing')).not.toThrow();
+  });
+});
+
+describe('collapsedKey', () => {
+  it('names one panel of one project, apart from every layout key', () => {
+    expect(collapsedKey('demo', 'nav')).toBe('cs:collapsed:demo:nav');
+    expect(collapsedKey('demo', 'nav').startsWith('cs:layout')).toBe(false);
   });
 });
