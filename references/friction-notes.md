@@ -130,3 +130,27 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   unless Vite's `server.open` / `preview.open` is `false` or `"none"`, so every reviewer that started
   Ladle opened a tab in the user's Chrome. `.ladle/vite.config.mts` now sets both to `false`; agents
   that start any server also export `BROWSER=none`, which Ladle's opener honours.
+
+- **2026-09-04** — A custom property declared on `:root` cannot read a variable an element sets on
+  itself. `var()` resolves where the declaring rule applies, so `--_mb-max-h:
+  var(--radix-menubar-content-available-height, 80vh)` in the menubar's `:root` contract block
+  only ever saw the fallback, and every menu got `80vh` (785px at the design viewport) instead of
+  the space Radix measured under its title (reviewers A and B, code review). Anything Radix or
+  floating-ui sets inline on the floating element (`--radix-*-available-height/width`,
+  `--radix-*-transform-origin`) has to be read in the rule for that element, `token-ok`'d there.
+  The harness now asserts the computed cap is not the fallback.
+- **2026-09-04** — Two AA misses in the tokens, both caught by review, not by the harness that
+  existed. Text on the accent fill: `--cs-surface` on `--cs-accent` was 3.49:1 in the light theme;
+  `--cs-on-accent` (night in both themes) is the token for it, 5.31:1 light and 7.30:1 dark. Muted
+  ink: `--cs-p-ash` at 62% lightness was 3.55:1 on white, so every muted label, shortcut hint and
+  heading failed in the light theme; it is 50% now (5.85 on white, 5.51 on paper, 4.90 on linen).
+  The menubar harness measures the highlighted row, a muted shortcut and a group heading in both
+  themes from their computed colours (canvas readback turns oklch into RGB; the probe walks up to
+  the nearest painted ancestor for the background, because a transparent one reads as black and
+  passes anything). Measure a new text/surface pair before shipping it; the harness's `contrast()`
+  is the tool.
+- **2026-09-04** — Mutating a CSS file and running a harness against the running dev server in the
+  same breath can test the *old* CSS: the first page load beat Vite's file watcher, and the
+  mutation looked green. Give the watcher a second (`sleep 2`) after the edit, and grep the file
+  to confirm the mutation landed, before trusting a red-or-green from the dev server.
+
