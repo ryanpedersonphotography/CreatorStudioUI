@@ -38,7 +38,7 @@ export const ThreeRegions: Story = () => (
 );
 
 /**
- * What only the primitive can expand: both axes from one component, a pinned
+ * What only the primitive can show: both axes from one component, a pinned
  * shelf whose edge refuses to move yet collapses from a control outside it, and
  * toggles read through Cockpit.Regions. The product's five-region layout is
  * storied where it lives, in apps/studio.

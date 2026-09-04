@@ -5,7 +5,7 @@ import App from './app.js';
 describe('App', () => {
   it('renders the five cockpit regions', () => {
     render(<App />);
-    for (const name of ['Navigation', 'Manuscript', 'Context', 'Inspector']) {
+    for (const name of ['Navigation', 'Manuscript', 'Context shelf', 'Inspector']) {
       expect(screen.getByRole('region', { name })).toBeTruthy();
     }
     expect(document.getElementById('top')).toBeTruthy();

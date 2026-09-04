@@ -8,13 +8,16 @@ function fakeToggle(): PanelToggle {
 }
 
 describe('rails and strips', () => {
-  it('a rail expands its own region through a button named for it', () => {
+  it('a rail is a landmark named like its region, carrying one control that expands it', () => {
     const nav = fakeToggle();
     render(
       <Cockpit.Regions regions={{ nav }}>
-        <Rail region="nav" title="Navigation" />
+        <Rail region="nav" />
       </Cockpit.Regions>,
     );
+    expect(screen.getByRole('region', { name: 'Navigation' })).toBeTruthy();
+    const controls = screen.getAllByRole('button');
+    expect(controls).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Expand navigation' }));
     expect(nav.expand).toHaveBeenCalledTimes(1);
     expect(nav.collapse).not.toHaveBeenCalled();
@@ -24,9 +27,10 @@ describe('rails and strips', () => {
     const top = fakeToggle();
     render(
       <Cockpit.Regions regions={{ top }}>
-        <Strip region="top" title="Top shelf" />
+        <Strip region="top" />
       </Cockpit.Regions>,
     );
+    expect(screen.getByRole('region', { name: 'Top shelf' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Expand top shelf' }));
     expect(top.expand).toHaveBeenCalledTimes(1);
   });

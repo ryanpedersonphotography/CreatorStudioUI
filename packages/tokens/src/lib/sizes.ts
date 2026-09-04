@@ -8,11 +8,11 @@ export type PanelLength = `${number}%` | `${number}px`;
 export const cockpitSizes = {
   /** A collapsed panel takes no room at all: the primitive's default. */
   collapsed: '0px',
-  /** A sidebar's rail: the column it collapses to instead of vanishing. The kit's activity bar is 48px too. */
+  /** A sidebar's rail: the column it collapses to instead of vanishing. The kit pins its top shelf at 48 too (`AppShell.tsx` TOP_HEIGHT). */
   rail: '48px',
   /** A shelf's strip: the row the top shelf and the context shelf collapse to. */
   strip: '32px',
-  /** The top shelf: pinned chrome, hideable. */
+  /** The top shelf: pinned chrome; collapses to `strip`. */
   topHeight: '48px',
   navDefault: '20%',
   navMin: '160px',

@@ -1,24 +1,24 @@
 import { useCockpitRegion } from '@creator-studio/shell';
-import type { StudioRegion } from './studio-cockpit.js';
+import { REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
 
 /**
  * The top shelf's controls. Each button's visible text is its accessible
  * name, and `aria-pressed` carries whether that region is expanded. The
- * shelf may collapse itself: the strip it leaves behind carries the way back.
+ * shelf may collapse itself: the strip the preset leaves behind carries the
+ * way back, and focus travels with it.
  */
 export function StudioToolbar() {
   return (
     <div className="flex h-full items-center gap-sm px-md text-sm">
       <span className="mr-sm font-medium">Studio</span>
-      <RegionButton region="top">Top shelf</RegionButton>
-      <RegionButton region="nav">Navigation</RegionButton>
-      <RegionButton region="context">Context shelf</RegionButton>
-      <RegionButton region="inspector">Inspector</RegionButton>
+      {STUDIO_REGIONS.map((region) => (
+        <RegionButton key={region} region={region} />
+      ))}
     </div>
   );
 }
 
-function RegionButton({ region, children }: { region: StudioRegion; children: string }) {
+function RegionButton({ region }: { region: StudioRegion }) {
   const toggle = useCockpitRegion(region);
   return (
     <button
@@ -27,7 +27,7 @@ function RegionButton({ region, children }: { region: StudioRegion; children: st
       onClick={toggle.toggle}
       className="rounded-sm border border-border px-sm text-ink-muted transition-colors hover:text-ink aria-pressed:text-ink"
     >
-      {children}
+      {REGION_TITLES[region]}
     </button>
   );
 }

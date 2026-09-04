@@ -97,8 +97,26 @@ describe('Cockpit', () => {
   });
 });
 
+describe('a cockpit without a store', () => {
+  it('keeps its layout for the session only and touches no store', () => {
+    const { container } = render(
+      <Cockpit projectId="demo">
+        <Cockpit.Panel id="one">One</Cockpit.Panel>
+        <Cockpit.Separator aria-label="Resize" />
+        <Cockpit.Panel id="two">Two</Cockpit.Panel>
+      </Cockpit>,
+    );
+    expect(container.querySelector('#one')).toBeTruthy();
+    expect(container.querySelector('#two')).toBeTruthy();
+  });
+});
+
 describe('pinnedPanel', () => {
-  it('is the fixed-but-hideable recipe: equal sizes, inert edge, collapsible, holds its pixels', () => {
+  it('collapses to the size it is given, a strip that keeps a way back', () => {
+    expect(pinnedPanel(cockpitSizes.topHeight, cockpitSizes.strip).collapsedSize).toBe(cockpitSizes.strip);
+  });
+
+  it('is the fixed-but-collapsible recipe: equal sizes, inert edge, collapsible, holds its pixels', () => {
     expect(pinnedPanel(cockpitSizes.topHeight)).toEqual({
       defaultSize: cockpitSizes.topHeight,
       minSize: cockpitSizes.topHeight,

@@ -1,6 +1,6 @@
 import { createBrowserLayoutStore } from '@creator-studio/adapter-local';
 import { StudioCockpit } from './studio-cockpit.js';
-import { Rail, Strip } from './studio-rails.js';
+import { REGION_TITLES } from './studio-regions.js';
 import { StudioToolbar } from './studio-toolbar.js';
 
 /*
@@ -17,18 +17,15 @@ export function App() {
       projectId={PROJECT_ID}
       store={layoutStore}
       top={<StudioToolbar />}
-      topStrip={<Strip region="top" title="Top shelf" />}
-      nav={<Region title="Navigation" />}
-      navRail={<Rail region="nav" title="Navigation" />}
+      nav={<Region title={REGION_TITLES.nav} />}
       main={<Region title="Manuscript" prose />}
-      context={<Region title="Context" />}
-      contextStrip={<Strip region="context" title="Context shelf" />}
-      inspector={<Region title="Inspector" />}
-      inspectorRail={<Rail region="inspector" title="Inspector" />}
+      context={<Region title={REGION_TITLES.context} />}
+      inspector={<Region title={REGION_TITLES.inspector} />}
     />
   );
 }
 
+/** A region's full content carries its own padding: the preset's panels have none, so a rail can use its 48px. */
 function Region({ title, prose = false }: { title: string; prose?: boolean }) {
   return (
     <section aria-label={title} className={prose ? 'p-lg font-prose' : 'p-md text-ink-muted'}>

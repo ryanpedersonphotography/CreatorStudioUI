@@ -56,7 +56,7 @@ describe('usePanelToggle', () => {
     expect(result.current.collapsed).toBe(true);
   });
 
-  it('expand() after collapse() reopens exactly where it was, through expand()', () => {
+  it('expand() after collapse() reopens exactly where it was, through expand() on the handle', () => {
     const { result, spies } = mount(cockpitSizes.navDefault);
     act(() => result.current.collapse());
     act(() => result.current.expand());
@@ -88,7 +88,7 @@ describe('usePanelToggle', () => {
     expect(spies.expand).not.toHaveBeenCalled();
   });
 
-  it('expand() falls back to expand() when no restore size was given', () => {
+  it('expand() falls back to expand() on the handle when no restore size was given', () => {
     const { result, spies } = mount(undefined, true);
     act(() => result.current.expand());
     expect(spies.expand).toHaveBeenCalledTimes(1);

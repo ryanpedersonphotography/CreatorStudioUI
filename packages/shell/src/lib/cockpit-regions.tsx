@@ -8,7 +8,7 @@ const RegionsContext = createContext<CockpitRegionMap | null>(null);
 
 /**
  * Makes a set of toggles reachable from anywhere inside, so a toolbar in one
- * region can hide and show the others without prop-drilling. The composing
+ * region can collapse and expand the others without prop-drilling. The composing
  * app owns the toggles and memoises the map; this is plumbing, not a store.
  */
 export function CockpitRegions({ regions, children }: { regions: CockpitRegionMap; children: ReactNode }) {

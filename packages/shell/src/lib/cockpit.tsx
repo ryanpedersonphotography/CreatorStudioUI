@@ -1,4 +1,4 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import { useMemo, type KeyboardEvent, type ReactNode } from 'react';
 import {
   Group,
   Panel as ResizablePanel,
@@ -41,7 +41,13 @@ export interface CockpitProps {
   /** Namespaces the remembered layout; one project, one layout. */
   projectId: string;
   /** Where the layout is remembered. Supplied by the app, never chosen here. */
-  store: LayoutStore;
+  /**
+   * Where this group's layout lives. Omit it and the layout lasts the session
+   * only: right for a group whose only state should not outlive a reload,
+   * such as a pinned shelf whose stored share would be validated against the
+   * next window's size without pixel conversion and mount collapsed.
+   */
+  store?: LayoutStore;
   /** Name of this panel group inside the project. Nested groups need their own. */
   group?: string;
   /** Which way the panels run. Defaults to side by side. */
@@ -66,6 +72,16 @@ const LIBRARY_PREFIX = 'react-resizable-panels:';
  * the library prefix before it reaches the store and nothing outside this file
  * ever learns which library is underneath.
  */
+/** A store that forgets on reload. One per cockpit that asked for no store. */
+function sessionStore(): LayoutStore {
+  const bag = new Map<string, string>();
+  return {
+    getItem: (key) => bag.get(key) ?? null,
+    setItem: (key, value) => void bag.set(key, value),
+    removeItem: (key) => void bag.delete(key),
+  };
+}
+
 function asLayoutStorage(store: LayoutStore): LayoutStorage {
   const unprefix = (key: string) => (key.startsWith(LIBRARY_PREFIX) ? key.slice(LIBRARY_PREFIX.length) : key);
   return {
@@ -84,7 +100,8 @@ export function Cockpit({
   className,
 }: CockpitProps) {
   const id = layoutKey(projectId, group);
-  const layout = useDefaultLayout({ id, storage: asLayoutStorage(store), panelIds });
+  const storage = useMemo(() => asLayoutStorage(store ?? sessionStore()), [store]);
+  const layout = useDefaultLayout({ id, storage, panelIds });
   return (
     <Group
       {...layout}
@@ -159,7 +176,7 @@ function CockpitPanel({
  * collapsible through a toggle, to `collapsedSize`: nothing by default, or a
  * strip that keeps a way back. A disabled panel is skipped by the drag hit-test
  * but still answers the imperative API (the reference kit measured a 120px
- * drag on such a rail moving it zero pixels while a button still hid it);
+ * drag on such a pinned panel moving it zero pixels while a button still collapsed it);
  * `collapsible` is what lets it collapse.
  */
 export function pinnedPanel(

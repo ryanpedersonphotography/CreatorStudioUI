@@ -1,81 +1,66 @@
-import { useMemo, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import type { CockpitProps } from '@creator-studio/shell';
-import { Cockpit, pinnedPanel, usePanelToggle, type CockpitRegionMap } from '@creator-studio/shell';
+import { Cockpit, pinnedPanel, usePanelToggle, type CockpitRegionMap, type PanelToggle } from '@creator-studio/shell';
 import { cockpitSizes } from '@creator-studio/tokens';
+import { Rail, Strip } from './studio-rails.js';
+import type { StudioRegion } from './studio-regions.js';
+
+export { REGION_TITLES, STUDIO_REGIONS, type StudioRegion } from './studio-regions.js';
 
 /*
  * The writer's cockpit: five regions from three nested cockpits.
  *
  *   ┌──────────────────────────────────────────────┐
- *   │  TOP SHELF       pinned · collapses to a strip│  root, vertical
+ *   │  TOP SHELF     pinned · collapses to a strip │  root, vertical
  *   ├──────┬───────────────────────────┬───────────┤
  *   │ NAV  │  MAIN SURFACE             │ INSPECTOR │  body, horizontal
  *   │ rail ├───────────────────────────┤   rail    │
- *   │      │  CONTEXT SHELF  drag · strip          │  center, vertical
+ *   │      │  CONTEXT SHELF   · strip  │           │  center, vertical
  *   └──────┴───────────────────────────┴───────────┘
  *
- * Nothing vanishes. A collapsed sidebar is a rail (48px) and a collapsed
- * shelf is a strip (32px); each shows the region's compact content, which
- * carries the way back. That is what lets a region hold the control that
- * collapses it, the top shelf included.
+ * Nothing vanishes. A collapsed sidebar is a rail (48px, above the body's
+ * minimum width) and a collapsed shelf is a strip (32px). A horizontal edge
+ * collapses to a strip because a rail is a vertical form: the bottom edge was
+ * asked for as a rail and gets the strip, the same idea lying down. The
+ * preset renders each compact state itself, so the way back is there by
+ * construction whatever a caller passes, and any region may hold the control
+ * that collapses it, the top shelf included.
  *
- * The top shelf is chrome: fixed height, inert edge. Nav and inspector are
- * sidebars: draggable, collapsible, and they hold their pixel width while
- * the window resizes. A stored layout is a share of the window, not pixels,
- * so a reopen at another window size restores the share. The context shelf
- * is a drawer under the surface. Only the surface stretches. Any region
- * reaches the others' toggles through Cockpit.Regions.
+ * The top shelf is chrome: fixed height, inert edge. Its group is not
+ * persisted: the only thing a stored share could add is the collapsed bit,
+ * and the library validates a stored percentage against limits derived from
+ * the current window size without converting pixels first, so a shelf stored
+ * at one height mounted collapsed on any shorter window. Collapsing the shelf
+ * is session-scoped on purpose.
+ *
+ * Nav and inspector are sidebars: draggable, collapsible, and they hold their
+ * pixel width while the window resizes. A stored layout is a share of the
+ * window, not pixels, so a reopen at another window size restores the share.
+ * The context shelf is a drawer under the surface. Only the surface stretches.
+ * Any region reaches the others' toggles through Cockpit.Regions.
  *
  * The body's minimums (nav + centre column + inspector) are the floor below
  * which the group has no slack: there the toggles report false and nothing
- * moves. Raising any minimum raises that floor.
+ * moves, and rails get squeezed below 48px. Raising any minimum raises that
+ * floor.
  */
-
-/**
- * The collapsible regions. Every one has a toggle, and every collapsed state
- * shows compact content with its own expand control, so a control may live
- * inside the region it collapses: the toolbar in the top shelf collapses the
- * shelf, and the strip that remains brings it back.
- */
-export const STUDIO_REGIONS = ['top', 'nav', 'context', 'inspector'] as const;
-export type StudioRegion = (typeof STUDIO_REGIONS)[number];
 
 export interface StudioCockpitProps {
   projectId: string;
-  /** The cockpit's store, chosen by the composition root. */
-  store: CockpitProps['store'];
+  /** The cockpit's store, chosen by the composition root. Body and centre persist through it. */
+  store: NonNullable<CockpitProps['store']>;
   top: ReactNode;
   nav: ReactNode;
   main: ReactNode;
   context: ReactNode;
   inspector: ReactNode;
-  /**
-   * What a region shows while collapsed: a strip for the shelves, a rail for
-   * the sidebars. Each must carry a control that expands the region again.
-   */
-  topStrip: ReactNode;
-  navRail: ReactNode;
-  contextStrip: ReactNode;
-  inspectorRail: ReactNode;
 }
 
-export function StudioCockpit({
-  projectId,
-  store,
-  top,
-  nav,
-  main,
-  context,
-  inspector,
-  topStrip,
-  navRail,
-  contextStrip,
-  inspectorRail,
-}: StudioCockpitProps) {
-  const topToggle = usePanelToggle(cockpitSizes.topHeight);
-  const navToggle = usePanelToggle(cockpitSizes.navDefault);
-  const contextToggle = usePanelToggle(cockpitSizes.contextDefault);
-  const inspectorToggle = usePanelToggle(cockpitSizes.inspectorDefault);
+export function StudioCockpit({ projectId, store, top, nav, main, context, inspector }: StudioCockpitProps) {
+  const topToggle = useFocusHandoff('top', usePanelToggle(cockpitSizes.topHeight));
+  const navToggle = useFocusHandoff('nav', usePanelToggle(cockpitSizes.navDefault));
+  const contextToggle = useFocusHandoff('context', usePanelToggle(cockpitSizes.contextDefault));
+  const inspectorToggle = useFocusHandoff('inspector', usePanelToggle(cockpitSizes.inspectorDefault));
 
   const regions = useMemo<CockpitRegionMap>(
     () => ({ top: topToggle, nav: navToggle, context: contextToggle, inspector: inspectorToggle }),
@@ -96,9 +81,9 @@ export function StudioCockpit({
 
   return (
     <Cockpit.Regions regions={regions}>
-      <Cockpit projectId={projectId} store={store} orientation="vertical">
+      <Cockpit projectId={projectId} orientation="vertical">
         <Cockpit.Panel id="top" {...pinnedPanel(cockpitSizes.topHeight, cockpitSizes.strip)} {...topToggle.panelProps}>
-          {topToggle.collapsed ? topStrip : top}
+          {topToggle.collapsed ? <Strip region="top" /> : top}
         </Cockpit.Panel>
         {/* Draws the shelf's edge and refuses to be dragged; the panel is pinned anyway.
             Nameless on purpose: it is static, and a name would put an inoperable
@@ -115,7 +100,7 @@ export function StudioCockpit({
               groupResizeBehavior="preserve-pixel-size"
               {...navToggle.panelProps}
             >
-              {navToggle.collapsed ? navRail : nav}
+              {navToggle.collapsed ? <Rail region="nav" /> : nav}
             </Cockpit.Panel>
             <Cockpit.Separator aria-label="Resize navigation" />
             <Cockpit.Panel id="center" minSize={cockpitSizes.centerMinWidth}>
@@ -132,7 +117,7 @@ export function StudioCockpit({
                   collapsedSize={cockpitSizes.strip}
                   {...contextToggle.panelProps}
                 >
-                  {contextToggle.collapsed ? contextStrip : context}
+                  {contextToggle.collapsed ? <Strip region="context" /> : context}
                 </Cockpit.Panel>
               </Cockpit>
             </Cockpit.Panel>
@@ -146,11 +131,55 @@ export function StudioCockpit({
               groupResizeBehavior="preserve-pixel-size"
               {...inspectorToggle.panelProps}
             >
-              {inspectorToggle.collapsed ? inspectorRail : inspector}
+              {inspectorToggle.collapsed ? <Rail region="inspector" /> : inspector}
             </Cockpit.Panel>
           </Cockpit>
         </Cockpit.Panel>
       </Cockpit>
     </Cockpit.Regions>
   );
+}
+
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Keeps keyboard focus with a region whose content swaps under it. A control
+ * that collapses the region it lives in (the toolbar's own "Top shelf") or
+ * expands from inside a rail or strip unmounts on activation, and focus would
+ * fall to the document. When focus was inside the region as the call was
+ * made, it moves to the new content's first control once rendered, or to the
+ * content's landmark when it has none. A call that did not act moves nothing.
+ */
+function useFocusHandoff(id: StudioRegion, toggle: PanelToggle): PanelToggle {
+  const pending = useRef(false);
+
+  const handoff = useMemo<PanelToggle>(() => {
+    const noting = (act: () => boolean) => () => {
+      const panel = document.getElementById(id);
+      pending.current = panel !== null && panel.contains(document.activeElement);
+      const acted = act();
+      if (!acted) pending.current = false;
+      return acted;
+    };
+    return { ...toggle, collapse: noting(toggle.collapse), expand: noting(toggle.expand), toggle: noting(toggle.toggle) };
+  }, [id, toggle]);
+
+  useEffect(() => {
+    if (!pending.current) return;
+    pending.current = false;
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    const control = panel.querySelector<HTMLElement>(FOCUSABLE);
+    if (control) {
+      control.focus();
+      return;
+    }
+    const landmark = panel.querySelector<HTMLElement>('section, [role="region"]');
+    if (landmark) {
+      landmark.tabIndex = -1;
+      landmark.focus();
+    }
+  }, [id, toggle.collapsed]);
+
+  return handoff;
 }

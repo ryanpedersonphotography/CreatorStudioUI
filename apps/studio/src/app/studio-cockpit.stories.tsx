@@ -1,6 +1,8 @@
 import type { Story } from '@ladle/react';
+import { useCockpitRegion } from '@creator-studio/shell';
+import { useEffect, useRef } from 'react';
 import { StudioCockpit } from './studio-cockpit.js';
-import { Rail, Strip } from './studio-rails.js';
+import { REGION_TITLES } from './studio-regions.js';
 import { StudioToolbar } from './studio-toolbar.js';
 
 // A story keeps its layout in memory, so nothing it does leaks into the app's localStorage.
@@ -18,17 +20,44 @@ export const WritersCockpit: Story = () => (
       projectId="story"
       store={store}
       top={<StudioToolbar />}
-      topStrip={<Strip region="top" title="Top shelf" />}
-      nav={<Placeholder>Navigation</Placeholder>}
-      navRail={<Rail region="nav" title="Navigation" />}
+      nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
       main={<Placeholder prose>Manuscript</Placeholder>}
-      context={<Placeholder>Context</Placeholder>}
-      contextStrip={<Strip region="context" title="Context shelf" />}
-      inspector={<Placeholder>Inspector</Placeholder>}
-      inspectorRail={<Rail region="inspector" title="Inspector" />}
+      context={<Placeholder>{REGION_TITLES.context}</Placeholder>}
+      inspector={<Placeholder>{REGION_TITLES.inspector}</Placeholder>}
     />
   </div>
 );
+
+/** Every edge in its compact state: rails left and right, strips top and bottom, each with its way back. */
+export const CompactStates: Story = () => (
+  <div className="h-dvh">
+    <StudioCockpit
+      projectId="story-compact"
+      store={store}
+      top={<CollapseAllOnMount />}
+      nav={<Placeholder>{REGION_TITLES.nav}</Placeholder>}
+      main={<Placeholder prose>Manuscript</Placeholder>}
+      context={<Placeholder>{REGION_TITLES.context}</Placeholder>}
+      inspector={<Placeholder>{REGION_TITLES.inspector}</Placeholder>}
+    />
+  </div>
+);
+
+/** Renders the toolbar and, once every panel has attached, collapses all four regions one time. */
+function CollapseAllOnMount() {
+  const top = useCockpitRegion('top');
+  const nav = useCockpitRegion('nav');
+  const context = useCockpitRegion('context');
+  const inspector = useCockpitRegion('inspector');
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current) return;
+    // The shelf goes last: collapsing it unmounts this component.
+    const acted = [nav, context, inspector].map((region) => region.collapsed || region.collapse());
+    if (acted.every(Boolean) && top.collapse()) done.current = true;
+  }, [top, nav, context, inspector]);
+  return <StudioToolbar />;
+}
 
 function Placeholder({ children, prose = false }: { children: string; prose?: boolean }) {
   return <p className={prose ? 'p-lg font-prose' : 'p-md text-sm font-ui uppercase tracking-wide text-ink-muted'}>{children}</p>;

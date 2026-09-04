@@ -49,3 +49,13 @@ collapsed/collapse/expand), `apps/studio/src/app/studio-cockpit.tsx` (slots), `s
 Findings first, most severe first, each with severity (MATERIAL / MINOR), the claim, the citation,
 and the fix you recommend. Then a "checked and clean" list naming exactly what you checked and how.
 A bare "looks good" is a failed review.
+
+## Browser probes: headless, through the Playwright CLI
+
+Probe the dev server headlessly, never with a visible browser. Prefer the `playwright-cli` binary
+(load the `playwright-cli` skill for its commands: `open`, `goto`, `snapshot`, `find`, `click`, `eval`,
+`screenshot`, `close`) when it is on PATH; otherwise `npx playwright screenshot --viewport-size "1440, 900"
+--wait-for-timeout 2000 <url> <png>` from the repo root, or a small Node script run from the repo root
+with `node --input-type=module -e "$(cat script.mjs)"` so `playwright` resolves. Do not use a
+computer-use tool. Save any screenshot you cite under
+`/Users/ryanpederson/NewDev/CreatorStudioUI/screenshots/review-<a|b>-*.png` and name the path.

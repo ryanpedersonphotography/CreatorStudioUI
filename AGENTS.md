@@ -92,6 +92,12 @@ token package. TS strict, no `any`. Every export from a package's `index.ts` has
 also has a story.
 After adding or removing a project, run `pnpm nx sync` so TS project references follow.
 
+**Browser verification is headless, through the Playwright CLI.** `playwright-cli` is on PATH
+(`open`, `goto`, `snapshot`, `find`, `click`, `eval`, `screenshot`, `close`); `npx playwright screenshot`
+and a Node script run from the repo root are the fallbacks, still headless. Brief reviewers and
+subagents the same way. A visible browser or a computer-use tool only when the CLI genuinely cannot
+do the check, and say why. Every visual claim names its PNG path.
+
 **Reviewed — judgment; cite the line when you flag it.** Composition over configuration: children and
 slots, compound components (`Card`, `Card.Header`, `Card.Body`), not boolean-prop piles. Headless
 first: behaviour in hooks, appearance in thin wrappers. State stays close. One component, one file,

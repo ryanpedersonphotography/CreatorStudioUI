@@ -34,11 +34,22 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   when the group has no slack (every panel already at its minimum). The studio body needs
   nav 160 + center 320 + inspector 200 px plus separators before a toggle can act; narrower than that
   the toolbar buttons do nothing. `usePanelToggle` reads the group back and returns `false` from
-  `hide()`/`show()` in that case, so a caller can tell. Raising any minimum raises the threshold.
+  `collapse()`/`expand()` in that case, so a caller can tell. Raising any minimum raises the threshold.
 - **2026-09-03** — Ladle 5.1 builds with its own bundled Vite 6, and `@vitejs/plugin-react` 6 peers on
   Vite 8, so inside Ladle the React plugin does nothing. JSX then follows esbuild's tsconfig lookup,
   and `.ladle/components.tsx` sits outside every project tsconfig: it compiled classic and the built
   stories rendered blank with "React is not defined" while `pnpm stories:build` stayed green. The
   Ladle Vite config names `esbuild.jsx: 'automatic'` for that reason. A green story build is not a
   rendered story; screenshot the built output (`ladle preview`) when stories change.
+- **2026-09-04** — On mount the panel library validates a *stored* layout (percentages) against
+  constraints derived from the *current* group size, without the pixel correction it applies on live
+  resizes. A pinned 48px shelf stored as 5.3% of a 900px window mounts collapsed on any window shorter
+  than ~750px once its collapsed size is 32px (the collapse midpoint moved from 24px to 40px). Live
+  resizing never shows it. The root group is therefore session-only (`Cockpit` without a `store`);
+  the harness seeds a stale share into a 740px-tall context to keep it that way. Persisting the shelf's
+  collapsed bit under its own key is the door if that ever matters.
+- **2026-09-04** — A control that unmounts itself on activation (a toolbar button that collapses the
+  shelf it lives in; an expand button inside a rail) drops keyboard focus to the document. The preset
+  wraps each toggle so that when focus was inside the region at the call, it moves to the new
+  content's first control, or its landmark. Harness §8c holds the four transitions.
 

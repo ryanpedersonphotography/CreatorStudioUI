@@ -4,7 +4,8 @@
  * Chromium. Proves the five regions, the separator states, drag + persist +
  * reload through the port, the toggles, the keyboard, the pinned top shelf,
  * and sidebars that hold their pixels while the window resizes (a stored layout is a share, not pixels).
- * Nothing vanishes: sidebars collapse to 48px rails and shelves to 32px strips, each with its way back.
+ * Nothing vanishes: sidebars collapse to 48px rails (above the body's minimum width) and shelves to
+ * 32px strips, each a landmark with its way back; focus travels with the swap.
  *
  *   pnpm verify:ui               against the dev server on :5180
  *   pnpm verify:ui --preview     serves an existing apps/studio/dist on :5181 (run `pnpm build` first; it does not build)
@@ -174,6 +175,8 @@ ok(
   (await height('#top')) === 32 && (await button('Expand top shelf').count()) === 1,
   `${await height('#top')}`,
 );
+await drag(TOP_SEP, 0, 80);
+ok('the collapsed shelf edge refuses a drag too', (await height('#top')) === 32, `${await height('#top')}`);
 await button('Expand top shelf').click();
 await sleep(300);
 ok(
@@ -181,6 +184,20 @@ ok(
   (await height('#top')) === 48 && (await button('Top shelf').getAttribute('aria-pressed')) === 'true',
   `${await height('#top')}`,
 );
+
+// 5b — a shelf stored as a share of a tall window must not mount collapsed on a short one.
+// The root group is session-only, so a stale stored share is ignored; this seeds one to prove it.
+{
+  const short = await browser.newContext({ viewport: { width: 1440, height: 740 } });
+  await short.addInitScript(() => localStorage.setItem('cs:layout:default:root', '{"top":5.339,"body":94.661}'));
+  const page2 = await short.newPage();
+  await page2.goto(BASE, { waitUntil: 'networkidle' });
+  await sleep(300);
+  const topShort = Math.round((await page2.locator('#top').boundingBox())?.height ?? -1);
+  const toolbar = await page2.getByRole('button', { name: 'Top shelf', exact: true }).count();
+  ok('a short window mounts the shelf expanded with its toolbar, whatever share an older window stored', topShort === 48 && toolbar === 1, `${topShort}px, ${toolbar} toolbar`);
+  await short.close();
+}
 
 // 6 — sidebars collapse to rails; a rail holds its pixels; expand puts back exactly what collapse took
 await button('Navigation').click();
@@ -190,7 +207,7 @@ ok(
   (await width('#nav')) === 48 && (await button('Navigation').getAttribute('aria-pressed')) === 'false',
   `${await width('#nav')}`,
 );
-ok('the rail carries the way back', (await page.locator('#nav').getByRole('button', { name: 'Expand navigation' }).count()) === 1);
+ok('the rail is a landmark that carries the way back', (await page.locator('#nav').getByRole('region', { name: 'Navigation' }).getByRole('button', { name: 'Expand navigation' }).count()) === 1);
 await page.setViewportSize({ width: 1200, height: 900 });
 await sleep(300);
 ok('a rail holds its pixels across a window resize', (await width('#nav')) === 48, `${await width('#nav')}`);
@@ -204,12 +221,25 @@ ok(
   Math.abs(navShown - navRestored) <= 1 && (await button('Navigation').getAttribute('aria-pressed')) === 'true',
   `${navRestored} → ${navShown}`,
 );
+const inspectorBefore = await width('#inspector');
 await button('Inspector').click();
 await sleep(300);
 ok('the inspector collapses to its rail', (await width('#inspector')) === 48, `${await width('#inspector')}`);
 await button('Expand inspector').click();
 await sleep(300);
-ok('the inspector rail brings it back', (await width('#inspector')) > 100, `${await width('#inspector')}`);
+ok('the inspector rail brings it back at exactly the width it had', Math.abs((await width('#inspector')) - inspectorBefore) <= 1, `${inspectorBefore} → ${await width('#inspector')}`);
+
+// 6b — a rail can be dragged open, and the toolbar's expand then returns to that dragged width
+await button('Navigation').click();
+await sleep(300);
+await drag(NAV_SEP, 200, 0);
+const navDraggedOpen = await width('#nav');
+ok('dragging a rail outward expands it and the button follows', navDraggedOpen > 160 && (await button('Navigation').getAttribute('aria-pressed')) === 'true', `48 → ${navDraggedOpen}`);
+await button('Navigation').click();
+await sleep(300);
+await button('Navigation').click();
+await sleep(300);
+ok('collapse then expand from the toolbar returns to the dragged-open width', Math.abs((await width('#nav')) - navDraggedOpen) <= 1, `${navDraggedOpen} → ${await width('#nav')}`);
 
 // 7 — the context shelf: a drag shut lands on the strip; the strip reopens at the token default; a button collapse reopens exactly
 const contextBefore = await height('#context');
@@ -228,6 +258,32 @@ await button('Context shelf').click();
 await sleep(300);
 ok('after a button collapse, expand brings back the dragged height exactly', Math.abs((await height('#context')) - contextDragged) <= 1, `${contextDragged} → ${await height('#context')}`);
 
+// 7b — compact states survive a reload; the shelf's does not, on purpose
+for (const name of ['Navigation', 'Context shelf', 'Inspector', 'Top shelf']) {
+  await button(name).click();
+  await sleep(200);
+}
+await page.reload({ waitUntil: 'networkidle' });
+await sleep(300);
+ok(
+  'rails and the context strip come back from storage after a reload',
+  (await width('#nav')) === 48 && (await height('#context')) === 32 && (await width('#inspector')) === 48,
+  `${await width('#nav')} / ${await height('#context')} / ${await width('#inspector')}`,
+);
+ok(
+  'their expand controls come back with them',
+  (await page.getByRole('button', { name: /^Expand (navigation|context shelf|inspector)$/ }).count()) === 3,
+);
+ok(
+  'the top shelf mounts expanded after a reload: its collapse is session-scoped',
+  (await height('#top')) === 48 && (await button('Top shelf').count()) === 1,
+  `${await height('#top')}`,
+);
+for (const name of ['Expand navigation', 'Expand context shelf', 'Expand inspector']) {
+  await button(name).click();
+  await sleep(200);
+}
+
 // 8 — keyboard: Tab reaches the separators in order, focus is painted, Enter toggles the drawer
 await page.locator('#top button').last().focus();
 await page.keyboard.press('Tab');
@@ -235,7 +291,7 @@ ok('Tab from the toolbar lands on the navigation separator, skipping the disable
 ok('a focused separator reports focus through data-separator', (await page.locator(NAV_SEP).getAttribute('data-separator')) === 'focus');
 const ring = await outline(NAV_SEP);
 ok('keyboard focus paints a ring', ring.style !== 'none' && ring.width >= 1, `${ring.style} ${ring.width}px`);
-const nbNow = await box(NAV_SEP); // re-read: the drag in section 3 moved it
+const nbNow = await box(NAV_SEP); // re-read: the drags above moved it
 await page.mouse.move(nbNow.x + nbNow.width / 2, nbNow.y + nbNow.height / 2 + 200);
 await sleep(150);
 const ringUnderHover = await outline(NAV_SEP);
@@ -248,6 +304,24 @@ ok('Enter on the separator collapses the context shelf to its strip', (await hei
 await page.keyboard.press('Enter');
 await sleep(300);
 ok('Enter again brings it back', (await height('#context')) > 100, `${await height('#context')}`);
+
+// 8c — focus travels with a region whose content swaps under the control that was pressed
+const focusWithin = (sel) => page.evaluate((s) => document.querySelector(s)?.contains(document.activeElement) === true, sel);
+await button('Top shelf').focus();
+await page.keyboard.press('Enter');
+await sleep(300);
+ok('collapsing the shelf from its own toolbar moves focus to the strip control', (await focusedLabel()) === 'Expand top shelf', await focusedLabel());
+await page.keyboard.press('Enter');
+await sleep(300);
+ok('expanding from the strip moves focus into the returned toolbar', (await focusedLabel()) === 'Top shelf', await focusedLabel());
+await button('Navigation').focus();
+await page.keyboard.press('Enter');
+await sleep(300);
+ok('collapsing nav from the toolbar keeps focus on the toolbar button', (await focusedLabel()) === 'Navigation' && (await width('#nav')) === 48, await focusedLabel());
+await button('Expand navigation').focus();
+await page.keyboard.press('Enter');
+await sleep(300);
+ok('expanding from the rail keeps focus inside the nav, on its landmark', (await focusWithin('#nav')) && (await width('#nav')) > 100, `${await focusedLabel()} in nav: ${await focusWithin('#nav')}`);
 
 // 8b — a layout stored at one window size reopens at another as a share of the window, not as pixels.
 // The library persists percentages; "holds its pixels" is a promise about live resizes only. A second
