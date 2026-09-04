@@ -3,13 +3,16 @@
 You are a fresh, independent reviewer. Repo: `/Users/ryanpederson/NewDev/CreatorStudioUI`. Read-only:
 no edits, no git commands that change anything, no servers on port 5181. Dev server:
 http://localhost:5180. Probe headlessly through the Playwright CLI (`playwright-cli` is on PATH; load the
-`playwright-cli` skill for its commands) or `npx playwright` / a Node script run from the repo root;
-never a visible browser. Save any screenshot you cite under
+`playwright-cli` skill for its commands) or `npx playwright screenshot` / a Node script run from the
+repo root. Nothing you run may open a window or tab on the user's screen: never `--headed`, never
+`attach`, never `npx playwright open` or `codegen`, and if you start Ladle or any other server, run
+it with `BROWSER=none` in the environment (`.ladle/vite.config.mts` already sets `open: false`).
+Save any screenshot you cite under
 `/Users/ryanpederson/NewDev/CreatorStudioUI/screenshots/review-c-*.png`.
 
 ## What to review
 
-`git diff HEAD~1` — the commit that applies the accepted findings in
+`git show 053c544` (its parent `e60933b` is the feature commit) — the commit that applies the accepted findings in
 `/Users/ryanpederson/NewDev/CreatorStudioUI/references/reviews/2026-09-04-rails/disposition.md`, from
 reviews `reviewer-a-correctness.md` (A1–A5) and `reviewer-b-gaps.md` (B1–B12) in the same folder.
 

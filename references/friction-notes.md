@@ -53,3 +53,8 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   wraps each toggle so that when focus was inside the region at the call, it moves to the new
   content's first control, or its landmark. Harness §8c holds the four transitions.
 
+- **2026-09-04** — Reviewer agents "jacked the screen": not Playwright (`playwright-cli open` is
+  headless by default) but Ladle. `ladle serve` and `ladle preview` call their own `openBrowser`
+  unless Vite's `server.open` / `preview.open` is `false` or `"none"`, so every reviewer that started
+  Ladle opened a tab in the user's Chrome. `.ladle/vite.config.mts` now sets both to `false`; agents
+  that start any server also export `BROWSER=none`, which Ladle's opener honours.

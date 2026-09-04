@@ -92,11 +92,16 @@ token package. TS strict, no `any`. Every export from a package's `index.ts` has
 also has a story.
 After adding or removing a project, run `pnpm nx sync` so TS project references follow.
 
-**Browser verification is headless, through the Playwright CLI.** `playwright-cli` is on PATH
-(`open`, `goto`, `snapshot`, `find`, `click`, `eval`, `screenshot`, `close`); `npx playwright screenshot`
-and a Node script run from the repo root are the fallbacks, still headless. Brief reviewers and
-subagents the same way. A visible browser or a computer-use tool only when the CLI genuinely cannot
-do the check, and say why. Every visual claim names its PNG path.
+**Browser verification is headless, through the Playwright CLI. Nothing an agent runs may open a
+window on the user's screen.** `playwright-cli` is on PATH (`open`, `goto`, `snapshot`, `find`,
+`click`, `eval`, `screenshot`, `close`) and is headless unless told otherwise: never pass `--headed`,
+never `attach` to the user's Chrome. `npx playwright screenshot` and a Node script run from the repo
+root are the fallbacks, still headless; `npx playwright open` and `codegen` are headed and off limits.
+Dev servers are the other leak: Ladle's `serve` and `preview` open a tab in the default browser
+unless `.ladle/vite.config.mts` says `open: false` (it does; keep it), and any agent that starts a
+server exports `BROWSER=none` first. Brief reviewers and subagents the same way. A visible browser or
+a computer-use tool only when the CLI genuinely cannot do the check, and say why. Every visual claim
+names its PNG path.
 
 **Reviewed — judgment; cite the line when you flag it.** Composition over configuration: children and
 slots, compound components (`Card`, `Card.Header`, `Card.Body`), not boolean-prop piles. Headless

@@ -9,4 +9,8 @@ export default defineConfig({
   // This file sits outside every project tsconfig, which made the Provider compile
   // classic ("React is not defined", blank built stories). Name the runtime.
   esbuild: { jsx: 'automatic', jsxImportSource: 'react' },
+  // Ladle's serve and preview open a tab in the default browser unless Vite says
+  // not to. Agents run these headlessly; nothing here may touch the user's screen.
+  server: { open: false },
+  preview: { open: false },
 });
