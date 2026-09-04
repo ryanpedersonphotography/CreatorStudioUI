@@ -33,8 +33,9 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const button = (name) => page.getByRole('button', { name, exact: true });
   const focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent ?? '');
   const state = (loc) => loc.getAttribute('data-state');
-  // WCAG contrast of an element's text (`color` on its own backdrop) or of its outline
-  // (`borderTopColor` on the backdrop behind the element): the non-text 3:1 of 1.4.11 for state
+  // WCAG contrast of an element's text (`color` on its own backdrop), of its border
+  // (`borderTopColor`) or of its focus ring (`outlineColor`), both on the backdrop behind the
+  // element: the non-text 3:1 of 1.4.11 for state and focus indicators
   const probe = (loc, of = 'color') =>
     loc.evaluate((el, of) => {
       // canvas readback turns any CSS colour (oklch included) into un-premultiplied RGBA
@@ -65,8 +66,9 @@ export async function run({ page, ok, sleep, errors, BASE }) {
       const a = lum(fg.rgb.map((v, i) => v * fg.alpha + base[i] * (1 - fg.alpha))); // a translucent foreground is what the eye sees of it
       const b = lum(base);
       const background = `rgb(${base.map(Math.round).join(', ')})`;
-      // a border keeps its computed colour when nothing draws it (width 0 or style none), so an outline probe reports both
-      const drawn = of === 'color' ? true : parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none';
+      // a border or outline keeps its computed colour when nothing draws it (width 0 or style none), so those probes report both
+      const drawn =
+        of === 'color' ? true : of === 'outlineColor' ? parseFloat(cs.outlineWidth) > 0 && cs.outlineStyle !== 'none' : parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none';
       return { ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), color: cs[of], background, painted, drawn, border: `${cs.borderTopWidth} ${cs.borderTopStyle}` };
     }, of);
   const contrast = (loc) => probe(loc, 'color');
@@ -154,14 +156,21 @@ export async function run({ page, ok, sleep, errors, BASE }) {
   const afterTag = await page.evaluate(() => document.activeElement?.tagName);
   const afterLabel = (await focusedLabel()).trim();
   ok('Tab again leaves the bar for a region toggle: one tab stop for the whole bar', afterTag === 'BUTTON' && ['Navigation', 'Context shelf', 'Inspector', 'Top shelf'].includes(afterLabel), `${afterTag} ${afterLabel}`);
-  const chipRing = await page.locator('#top button:focus').evaluate((el) => {
+  const focusedChip = page.locator('#top button:focus');
+  const chipRing = await focusedChip.evaluate((el) => {
     const cs = getComputedStyle(el);
-    return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), offset: parseFloat(cs.outlineOffset), border: `${cs.borderTopWidth} ${cs.borderTopStyle}`, pressed: el.getAttribute('aria-pressed') };
+    return { style: cs.outlineStyle, width: parseFloat(cs.outlineWidth), offset: parseFloat(cs.outlineOffset), border: `${cs.borderTopWidth} ${cs.borderTopStyle}`, borderColor: cs.borderTopColor, pressed: el.getAttribute('aria-pressed') };
   });
+  const chipRingColor = await probe(focusedChip, 'outlineColor');
   ok(
     'the focused toggle paints the ring outside its border, so a pressed outline stays visible under focus',
     chipRing.style !== 'none' && chipRing.width >= 1 && chipRing.offset >= 0 && chipRing.border === '1px solid' && chipRing.pressed === 'true',
     `${chipRing.style} ${chipRing.width}px offset ${chipRing.offset}px, border ${chipRing.border}, pressed ${chipRing.pressed}`,
+  );
+  ok(
+    "the ring clears 3:1 against the shelf and is not the pressed outline's colour: focus and pressed stay distinguishable",
+    chipRingColor.drawn && chipRingColor.painted && chipRingColor.ratio >= 3 && chipRingColor.color !== chipRing.borderColor,
+    `ring ${chipRingColor.ratio.toFixed(2)}:1 (${chipRingColor.color} on ${chipRingColor.background}), border ${chipRing.borderColor}`,
   );
 
   // 4 — View's check items are the regions; the gutter shows the state; the ⌃⌘ shortcuts work
