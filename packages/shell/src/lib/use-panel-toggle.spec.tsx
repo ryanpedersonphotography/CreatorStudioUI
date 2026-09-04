@@ -179,22 +179,36 @@ describe('usePanelToggle', () => {
       expect(result.current.collapsed).toBe(false);
     });
 
-    it('writes each transition the user makes: buttons and released drags', () => {
+    it('records the buttons always, and a released drag only when it left the panel open', () => {
       const memory = fakeMemory(false);
       const { result, dragTo } = mount(cockpitSizes.navDefault, false, false, memory);
       act(() => void result.current.collapse());
       expect(memory.write).toHaveBeenLastCalledWith(true);
       act(() => void result.current.expand());
       expect(memory.write).toHaveBeenLastCalledWith(false);
+      // A released drag that collapses is sizing, not a deliberate hide: nothing recorded.
+      const afterButtons = vi.mocked(memory.write).mock.calls.length;
       dragTo(true);
-      expect(memory.write).toHaveBeenLastCalledWith(true);
-      expect(memory.write).toHaveBeenCalledTimes(3);
+      expect(vi.mocked(memory.write).mock.calls.length).toBe(afterButtons);
+      // A released drag that reopens clears the bit.
+      dragTo(false);
+      expect(memory.write).toHaveBeenLastCalledWith(false);
     });
 
     it('a size change the user did not make (a window squeeze) updates collapsed but writes nothing', () => {
       const memory = fakeMemory(false);
       const { result, resizeTo } = mount(cockpitSizes.navDefault, false, false, memory);
       resizeTo(true);
+      expect(result.current.collapsed).toBe(true);
+      expect(memory.write).not.toHaveBeenCalled();
+    });
+
+    it('a released drag that rails this panel while the user dragged a neighbour records nothing', () => {
+      // The panel is collapsed by the drag (state via onResize) but the release (onUserLayout)
+      // finds it collapsed, so no intent is written — the collateral rail stays reopenable.
+      const memory = fakeMemory(false);
+      const { result, dragTo } = mount(cockpitSizes.navDefault, false, false, memory);
+      dragTo(true);
       expect(result.current.collapsed).toBe(true);
       expect(memory.write).not.toHaveBeenCalled();
     });

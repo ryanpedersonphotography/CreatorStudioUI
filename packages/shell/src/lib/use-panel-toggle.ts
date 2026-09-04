@@ -112,7 +112,17 @@ export function usePanelToggle(restoreSize?: PanelLength, memory?: CollapsedMemo
   // Size changes of any origin: state only. The cockpit reports the user's own
   // layout changes separately, and those are what memory records.
   const onResize = useCallback<NonNullable<OnPanelResize>>(() => void sync(false), [sync]);
-  const onUserLayout = useCallback(() => void sync(true), [sync]);
+  // A user layout change (a released drag, a separator key, a double-click reset)
+  // records only when it left this panel open: a reopen, which clears a stale
+  // collapsed bit. A collapse reached this way is not intent — it is either this
+  // panel's own drag, which is sizing rather than a deliberate hide, or a
+  // neighbour's growth squeezing this one to its rail on a narrow window, which
+  // is the window's doing, not the user's. Recording either as a collapse made
+  // it survive the next mount as a rail the user never asked for. Deliberate
+  // hides come through collapse(); only they set the bit.
+  const onUserLayout = useCallback(() => {
+    if (handle) void sync(!handle.isCollapsed());
+  }, [handle, sync]);
 
   const collapse = useCallback((): boolean => {
     if (!handle || handle.isCollapsed()) return false;

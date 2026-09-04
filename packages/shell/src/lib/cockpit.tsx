@@ -133,16 +133,22 @@ export function Cockpit({
   const [groupHandle, setGroupHandle] = useGroupCallbackRef();
   useEffect(() => {
     if (!groupHandle) return;
+    let pending: ReturnType<typeof setTimeout> | undefined;
     const onDoubleClick = () => {
       const before = JSON.stringify(groupHandle.getLayout());
       // The library's handler runs at document capture, later in this same
       // dispatch, and commits synchronously; compare once the dispatch is over.
-      setTimeout(() => {
+      pending = setTimeout(() => {
         if (JSON.stringify(groupHandle.getLayout()) !== before) notify();
       }, 0);
     };
     window.addEventListener('dblclick', onDoubleClick, true);
-    return () => window.removeEventListener('dblclick', onDoubleClick, true);
+    return () => {
+      window.removeEventListener('dblclick', onDoubleClick, true);
+      // A double-click that unmounts this cockpit inside its own dispatch would
+      // otherwise fire the timer against a group the library has deregistered.
+      if (pending !== undefined) clearTimeout(pending);
+    };
   }, [groupHandle, notify]);
   return (
     <UserLayoutContext.Provider value={listeners}>

@@ -53,11 +53,18 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   records intent only: the toggles, and layout changes the library attributes to the user
   (`onLayoutChanged`'s `isUserInteraction`, relayed by the cockpit as `onUserLayout`). Never
   `onResize`: it also fires when a window squeeze rails the nav below ~700px wide, and recording that
-  as a collapse made the squeeze permanent (reviewer D). The stored share still degrades on a
-  squeeze, so a reload after one reopens the nav at its minimum rather than its old width; the
-  library's `onlySaveAfterUserInteractions` would keep the share but also stop saving toggle
-  collapses, which the bit would then have to restore on mount. Recorded as the door, not taken. The
-  harness seeds the clamp cases (§5b shelf at 740px tall, §5c nav at 900px wide) and the squeeze (§1b).
+  as a collapse made the squeeze permanent (reviewer D). The rule tightened again under reviewer F:
+  a user layout change (drag, separator key, double-click reset) records **only a reopen**, never a
+  collapse. A collapse reached that way is either a panel's own drag — sizing, not a deliberate hide
+  — or a *neighbour's* growth railing this panel on a narrow window (a nav reset at 760px wide rails
+  the inspector); recording the neighbour's squeeze as intent made a panel the user never touched a
+  permanent rail. Only the toolbar toggle (`collapse()`) records a hide. The cost, recorded as a
+  decision: a sidebar dragged shut (rather than toggled) is not remembered across a reload, so it
+  reopens at its minimum. The stored share still degrades on a squeeze, same residual as before. The
+  library's `onlySaveAfterUserInteractions` would keep the share but stop saving toggle collapses,
+  which the bit would then have to restore on mount. Recorded as the door, not taken. The harness
+  seeds the clamp cases (§5b shelf at 740px tall, §5c nav at 900px wide), the squeeze (§1b) and the
+  collateral reset (§6a′ nav reset at 760px railing the inspector).
 - **2026-09-04** — A control that unmounts itself on activation (a toolbar button that collapses the
   shelf it lives in; an expand button inside a rail) drops keyboard focus to the document. The preset
   wraps each toggle so that when focus was inside the region at the call, it moves to the new

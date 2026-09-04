@@ -13,7 +13,8 @@ against the dev server; an opus re-review of each fix diff. Briefs and reports s
 | C (opus) | `brief-c-rereview.md` — the first fix diff (`053c544`) | `reviewer-c-rereview.md` |
 | D (opus) | `brief-d-rereview.md` — the second fix diff (`709252e`), and the AGENTS.md headless rule from `ad71d78` | `reviewer-d-rereview.md` |
 | E (opus) | `brief-e-rereview.md` — the third fix diff (`b8c732e`), and the rewritten AGENTS.md rule | `reviewer-e-rereview.md` |
-| F (opus) | `brief-f-rereview.md` — the fourth fix diff | `reviewer-f-rereview.md` |
+| F (opus) | `brief-f-rereview.md` — the fourth fix diff (`0671daa`) | `reviewer-f-rereview.md` |
+| G (opus) | `brief-g-rereview.md` — the fifth fix diff | `reviewer-g-rereview.md` |
 
 ## Reviewer A
 
@@ -105,6 +106,27 @@ One material finding, reproduced by the session before anything was changed (too
 - `node tools/src/verify/cockpit.mjs` → 67 passed, 0 failed (dev server); `--preview` → 67 passed, 0 failed.
 - Double-click probe (session): toolbar collapse → bit `1`; double-click → nav 288, bits `0-0`; squeeze and reload → nav 160 open, bits `0-0`.
 
+## Reviewer F (re-review of `0671daa`)
+
+One material finding, reproduced by the session before anything changed (squeeze to 600, double-click
+the nav separator: inspector rails to 48 and its bit is written `1`, surviving a wide reload).
+
+| # | Finding | Disposition |
+|---|---|---|
+| F1 | **Material.** The double-click watcher notified every panel of the group, and the broadcast recorded any panel found collapsed as intent. On a narrow window the reset (or a wide drag) steals space from a sibling, rails it, and that sibling's bit is written `1`; C1's mount reconcile then stands down forever. D1's failure, reached through a panel the user never touched — and the collateral write was latent in wave three's broadcast, which HEAD gave a cheap new trigger. | **Fixed by narrowing the write rule.** A user layout change (the `onUserLayout` broadcast, from a released drag, a separator key, or the double-click watcher) records **only when it left the panel open** — a reopen, which clears a stale bit. A collapse reached that way is not intent: it is either the panel's own drag (sizing, not a hide) or a neighbour's squeeze (collateral). Only the toolbar toggle (`collapse()`) records a hide. So a collateral rail is never written and the mount reconcile reopens it. Measured: squeeze to 600, double-click the nav separator → inspector rails, bit stays unwritten (`0--`); wide reload → inspector back at 200px. Harness §6a′ reproduces it; §7 now asserts a drag shut records no intent bit. **Cost, recorded as a decision (like B6, Ryan may overrule):** a sidebar *dragged* shut rather than toggled is no longer remembered across a reload — it reopens at its minimum. The alternative (attribute the drag to the panel whose separator the user held, so its own drag-collapse still records) is written up as the door in the friction note; not taken, because it adds hit-test plumbing to keep a secondary gesture, and after five waves the simpler rule that removes the whole collateral class is the safer call. |
+| F2 | **Minor.** The watcher's `setTimeout(0)` fired even if the cockpit unmounted inside the dispatch, calling `getLayout()` on a deregistered group (an uncaught throw in a timer). Not reachable in the studio; reachable for a caller who renders a `Cockpit` conditionally. | **Fixed.** The effect holds the timer id and `clearTimeout`s it in cleanup. |
+| F3 | **Minor.** §6a's double-click assertion used `width > 100`, the loose check A4/C4 removed. | **Fixed.** Asserts the reset lands within 1px of the 288px default. |
+| F4 | **Minor.** The watcher's "notify only when the layout changed" guard had no test; it is jsdom-testable because `getLayout()` returns `{}` there, so a bare `dblclick` must not notify. | **Fixed.** A jsdom test dispatches `dblclick` on the window and asserts no panel's `onUserLayout` fires. |
+| F5 | **Minor.** The `playwright-cli show` token overran the paragraph's hand-wrap in AGENTS.md. | **Fixed.** Rewrapped. |
+| F (clean) | Cross-group isolation both directions; all three separators' resets recorded; no spurious notify on `#main`, the disabled top edge, or a toolbar button; no StrictMode listener duplication; stable handles; the timing of the capture snapshot; the keyboard family fully attributed; E4 recorded; scope six files. | Named checks; the session's own collateral re-probe agrees. |
+
+## Evidence (run by the session, 2026-09-04, after the F fixes)
+
+- `pnpm nx run-many -t typecheck lint test --skip-nx-cache` → exit 0, 17 tasks across 6 projects; 52 unit tests.
+- `pnpm verify` → exit 0 (typecheck, lint, token lint, test, stories, build, harness on the built bundle).
+- `node tools/src/verify/cockpit.mjs` → 70 passed, 0 failed (dev server); `--preview` → 70 passed, 0 failed.
+- Collateral re-probe (session): squeeze 600 → dblclick nav sep → inspector rails 48, bits `0--` (inspector unwritten); wide reload → inspector 200px open.
+
 ## Re-review
 
-Reviewer F: pending at the time of writing; findings and disposition appended when it returns.
+Reviewer G: pending at the time of writing; findings and disposition appended when it returns.

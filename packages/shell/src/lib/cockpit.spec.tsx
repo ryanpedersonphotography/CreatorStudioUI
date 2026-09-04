@@ -117,6 +117,29 @@ describe('a cockpit without a store', () => {
   });
 });
 
+describe('a double-click that changes nothing', () => {
+  it('does not report a user layout change (jsdom has no measured layout, so the reset is a no-op)', () => {
+    vi.useFakeTimers();
+    try {
+      const onUserLayout = vi.fn();
+      render(
+        <Cockpit projectId="demo">
+          <Cockpit.Panel id="one" onUserLayout={onUserLayout}>
+            One
+          </Cockpit.Panel>
+          <Cockpit.Separator aria-label="Resize" />
+          <Cockpit.Panel id="two">Two</Cockpit.Panel>
+        </Cockpit>,
+      );
+      fireEvent.dblClick(window);
+      vi.runAllTimers();
+      expect(onUserLayout).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('pinnedPanel', () => {
   it('collapses to the size it is given, a strip that keeps a way back', () => {
     expect(pinnedPanel(cockpitSizes.topHeight, cockpitSizes.strip).collapsedSize).toBe(cockpitSizes.strip);

@@ -278,20 +278,47 @@ await button('Expand inspector').click();
 await sleep(300);
 ok('the inspector rail brings it back at exactly the width it had', Math.abs((await width('#inspector')) - inspectorBefore) <= 1, `${inspectorBefore} → ${await width('#inspector')}`);
 
-// 6a — the two user gestures the library handles without our toggles still record intent:
-// a resize key on a separator (attributed by the library), and a double-click reset (the library's
-// imperative path, reported by the separator itself). Nothing here goes through a button.
+// 6a — a user layout change records only a reopen. A resize key that grows a panel and a
+// double-click reset that reopens it clear the bit to 0; a drag or reset that rails a *sibling*
+// records nothing for that sibling, so a window's collateral never survives as a rail the user
+// never asked for.
 await fresh();
 ok('fresh: no bits before any gesture', (await bits()) === '---', await bits());
 await page.locator(NAV_SEP).focus();
 await page.keyboard.press('ArrowRight');
 await sleep(300);
-ok('a resize key on the nav separator is the user\'s: the group\'s bits are written', (await bits())[0] === '0' && (await width('#nav')) > 288, `${await bits()} at ${await width('#nav')}px`);
+ok('a resize key that grows the nav records the reopen', (await bits())[0] === '0' && (await width('#nav')) > 288, `${await bits()} at ${await width('#nav')}px`);
 await button('Navigation').click();
 await sleep(300);
-ok('toolbar collapse: bit 1', (await bits())[0] === '1', await bits());
+ok('toolbar collapse records the hide: bit 1', (await bits())[0] === '1', await bits());
 await doubleClick(NAV_SEP);
-ok('double-clicking the separator reopens the nav and records it', (await width('#nav')) > 100 && (await bits())[0] === '0', `${await width('#nav')}px, ${await bits()}`);
+ok('double-clicking the separator resets the nav to its default width and clears the bit', Math.abs((await width('#nav')) - 288) <= 1 && (await bits())[0] === '0', `${await width('#nav')}px, ${await bits()}`);
+await fresh();
+
+// 6a′ — the collateral case, reproduced. On a 900px-tall-enough but narrow window the nav reset
+// steals space from the inspector and rails it; that squeeze must not be recorded as the user
+// hiding the inspector, and a wide reload must bring the inspector back.
+{
+  const narrow = await browser.newContext({ viewport: { width: 760, height: 900 } });
+  const p2 = await narrow.newPage();
+  await p2.goto(BASE, { waitUntil: 'networkidle' });
+  await p2.evaluate(() => localStorage.clear());
+  await p2.reload({ waitUntil: 'networkidle' });
+  await sleep(300);
+  const nb = await p2.locator(NAV_SEP).boundingBox();
+  await p2.mouse.dblclick(nb.x + nb.width / 2, nb.y + nb.height / 2);
+  await sleep(300);
+  const inspRailed = Math.round((await p2.locator('#inspector').boundingBox()).width);
+  const inspBit = await p2.evaluate(() => localStorage.getItem('cs:collapsed:default:inspector'));
+  ok('a nav reset that collaterally rails the inspector records no intent for the inspector', inspBit !== '1', `inspector=${inspRailed}px bit=${inspBit}`);
+  await p2.setViewportSize({ width: 1440, height: 900 });
+  await sleep(300);
+  await p2.reload({ waitUntil: 'networkidle' });
+  await sleep(400);
+  const inspWide = Math.round((await p2.locator('#inspector').boundingBox()).width);
+  ok('and a wide reload brings the collaterally-railed inspector back open', inspWide >= 200 && (await p2.getByRole('button', { name: 'Inspector', exact: true }).getAttribute('aria-pressed')) === 'true', `${inspWide}px`);
+  await narrow.close();
+}
 await fresh();
 
 // 6b — a rail can be dragged open, and the toolbar's expand then returns to that dragged width
@@ -310,11 +337,12 @@ ok('collapse then expand from the toolbar returns to the dragged-open width', Ma
 const contextBefore = await height('#context');
 await drag(CTX_SEP, 0, 400);
 ok('dragging the context shelf shut lands on its strip', (await height('#context')) === 32, `${contextBefore} → ${await height('#context')}`);
-ok('a released drag is the user\'s: the collapse is remembered', (await bits())[1] === '1', await bits());
+ok('a drag shut is sizing, not a hide: it records no intent bit', (await bits())[1] !== '1', await bits());
 ok('the toolbar button noticed the drag', (await button('Context shelf').getAttribute('aria-pressed')) === 'false');
 await button('Expand context shelf').click();
 await sleep(300);
 ok('after a drag shut, the strip reopens it at the token default, not the minimum', Math.abs((await height('#context')) - 180) <= 1, `${await height('#context')}`);
+ok('reopening records the open state: no stale collapsed bit', (await bits())[1] !== '1', await bits());
 await drag(CTX_SEP, 0, -100);
 const contextDragged = await height('#context');
 await button('Context shelf').click();
