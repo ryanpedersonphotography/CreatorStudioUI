@@ -115,14 +115,13 @@ compared on CI against `tools/src/visual/baselines`, where no pixel may differ b
 colour threshold of 0.2; a local run only proves the pages load, since the images are the Linux runner's rendering.
 `pnpm visual` starts its own Ladle preview on 61010 and Vite preview on 5181 and refuses a server already on either
 port, so a Ladle dev pane on 61000 can stay up). `.github/workflows/ci.yml` runs the same gate on
-GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected`. Pushing to `main` is the normal path and CI reports on it; a pull request is for a change whose
-images want looking at, which is every UI change, because baselines are regenerated only by the `visual-baselines`
-workflow, dispatched on the branch carrying the UI change, and reviewed as images there (its header has the
-commands; pruning pictures no story names any more is a dispatch input, so a story the manifest lost by accident
-fails the run rather than losing its picture). `.github/ruleset-main.json` would make
-`verify` a required check; GitHub applies rulesets to a private repository only on a paid plan, so until then
-merge only when the green run is for the head commit (the two commands are in the `ci.yml` header; this account's
-`gh` token cannot read checks, so `gh pr checks` 403s). Boundaries: packages import each
+GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected`. Every change goes through a branch and a pull request: `.github/ruleset-main.json` is applied (the repo is
+public, which is what makes a ruleset free), so `verify` is a required check on `main` and a push of an untested
+commit to `main` is refused. `gh pr merge <n> --auto --merge` merges the moment `verify` is green (the commands are
+in the `ci.yml` header; this account's `gh` token cannot read checks, so `gh pr checks` 403s). Baselines are
+regenerated only by the `visual-baselines` workflow, dispatched on the branch carrying the UI change, and reviewed
+as images in its pull request (its header has the commands; pruning pictures no story names any more is a dispatch
+input, so a story the manifest lost by accident fails the run rather than losing its picture). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export

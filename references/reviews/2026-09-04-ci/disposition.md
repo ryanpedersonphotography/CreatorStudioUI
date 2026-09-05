@@ -105,8 +105,8 @@ handling of the `inputs` context covers it. Accepted.
 
 - The `verify` check cannot be required on `main`: rulesets on a private personal repo need GitHub
   Pro (HTTP 403 on `POST /rulesets`). `.github/ruleset-main.json` is ready to apply; until then the
-  merge procedure in the `ci.yml` header is the guard.
-- The baselines job holds a write token through every step (A6).
+  merge procedure in the `ci.yml` header is the guard. **Resolved 2026-09-05:** Ryan chose to make the repo public; ruleset 22338497 is active and `verify` is required.
+- The baselines job holds a write token through every step (A6). On the public repo the exposure is unchanged: dispatch needs write access and fork pull requests get read-only tokens.
 - CI and `pnpm verify` are kept aligned by hand (A7/B10); `nx sync:check` is in both since round 2.
 - Baselines are Ubuntu's rendering of a system font stack; a local run cannot reproduce them and
   only proves the pages load (`ignoreSnapshots` off CI). The runner is pinned to `ubuntu-24.04`.
