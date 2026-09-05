@@ -11,8 +11,9 @@
     "stories": "ladle serve",
     "stories:build": "ladle build",
     "build": "nx run-many -t build",
-    "verify": "pnpm typecheck && pnpm lint && pnpm lint:tokens && pnpm test && pnpm stories:build && pnpm build && pnpm verify:ui --preview",
-    "verify:ui": "node tools/src/verify/all.mjs"
+    "verify": "pnpm typecheck && pnpm lint && pnpm exec nx sync:check && pnpm lint:tokens && pnpm test && pnpm stories:build && pnpm build && pnpm verify:ui --preview && pnpm visual",
+    "verify:ui": "node tools/src/verify/all.mjs",
+    "visual": "playwright test -c tools/src/visual/playwright.config.mts"
   },
   "private": true,
   "devDependencies": {
@@ -27,6 +28,7 @@
     "@nx/vite": "23.2.0",
     "@nx/vitest": "23.2.0",
     "@nx/web": "23.2.0",
+    "@playwright/test": "1.62.1",
     "@swc-node/register": "1.11.1",
     "@swc/cli": "~0.8.1",
     "@swc/core": "1.15.8",
@@ -50,7 +52,7 @@
     "jiti": "2.4.2",
     "jsdom": "^27.1.0",
     "nx": "23.2.0",
-    "playwright": "^1.62.1",
+    "playwright": "1.62.1",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.3.3",
     "tslib": "^2.3.0",

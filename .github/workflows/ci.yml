@@ -1,0 +1,97 @@
+# The `pnpm verify` gate (AGENTS.md > Conventions), run on GitHub for every push to
+# main and every pull request. The Nx targets go through `nx affected`; the rest of
+# the gate is root scripts, run in the same order as the local script. The `verify`
+# job is the check a pull request must show green before it merges.
+# .github/ruleset-main.json is the ruleset that would enforce that; GitHub applies
+# rulesets to a private repository only on a paid plan, so until then the check is
+# advisory, and green must be for the head commit, not an older one on the branch
+# (a bot push after the last run leaves a stale green at the top of the list). Read
+# the newest pull-request run whatever its result, so a later red on the same commit
+# is not hidden behind an earlier green, and not a dispatch run, which tests the
+# branch tip rather than the branch merged with main:
+#
+#   gh run list --branch <b> --workflow CI --event pull_request --limit 1 --json conclusion,headSha --jq '.[0] | "\(.conclusion) \(.headSha)"'
+#   gh pr view <n> --json headRefOid --jq .headRefOid      # merge only on `success` with a matching SHA
+#
+# Pushing to main directly is the normal path; a pull request is for a change whose
+# images want looking at, which is every UI change (see visual-baselines.yml).
+# A push made by the visual-baselines bot creates a pull-request run that is held
+# (action_required, no jobs); release it, or push again:
+#
+#   gh api -X POST repos/<owner>/<repo>/actions/runs/<run id>/approve
+#
+# `gh workflow run CI --ref <b>` also works once this file is on main.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Re-run by hand. A push made with the workflow token (the visual-baselines bot)
+  # yields a pull-request run held for approval instead; see the header.
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Superseded pull-request runs stop; every push to main keeps its own verdict
+  # (nx-set-shas also bases `affected` on the last successful main run).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    # Pinned, not ubuntu-latest: the visual baselines are rendered with this image's
+    # fonts, so a runner image change is a deliberate baseline change, not a surprise.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      # Full history for nx-set-shas, and a full clone: a treeless one (filter: tree:0)
+      # fetches trees lazily, which needs the credentials this job deliberately drops.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false # this job never pushes
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      # Node comes from engines.node in package.json; pnpm from packageManager.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # verify:ui and the visual baseline drive headless Chromium through the
+      # `playwright` library and `@playwright/test`, pinned to the same version.
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - uses: nrwl/nx-set-shas@v5
+
+      - run: pnpm exec nx affected -t typecheck lint test build
+      # TS project references must be current (AGENTS.md asks a human to run `nx sync`).
+      - run: pnpm exec nx sync:check
+
+      - run: pnpm lint:tokens
+      - run: pnpm stories:build
+      # verify:ui --preview and the visual baseline serve apps/studio/dist; affected may not have built it.
+      - run: pnpm exec nx build studio
+      - run: pnpm verify:ui --preview
+      # Compares against tools/src/visual/baselines (CI=true turns the comparison on).
+      - run: pnpm visual
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-output
+          path: |
+            screenshots/*.png
+            test-results/visual
+            playwright-report/visual
+          if-no-files-found: ignore
+          retention-days: 7

@@ -154,3 +154,45 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   mutation looked green. Give the watcher a second (`sleep 2`) after the edit, and grep the file
   to confirm the mutation landed, before trusting a red-or-green from the dev server.
 
+- **2026-09-04** — Ladle 5's documented story-loaded signal photographs the spinner. The visual
+  snapshot recipe waits on `[data-storyloaded]`, but in 5.1.1 the attribute is on `<html>` from
+  about 50ms while the loading ring is still in the DOM until about 380ms (sampled every 50ms on
+  the built preview), so `toHaveScreenshot` captured a blank page with the ring. The mount signal
+  that holds is the ring leaving: `locator('.ladle-ring').waitFor({ state: 'detached' })`, then a
+  child under `#ladle-root`. `tools/src/visual/stories.visual.mts` does that.
+- **2026-09-04** — A push made with the workflow's own `GITHUB_TOKEN` does not start CI by itself.
+  The `visual-baselines` job commits regenerated PNGs to the branch it was dispatched on; on an
+  already-open pull request that push creates a `pull_request` run that sits at `action_required`
+  with no jobs (run 33943368076). `gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve`
+  releases it (verified on that run), or any push by a person starts a fresh run; a pull request
+  opened *after* the dispatch gets its run from the `opened` event, and `gh workflow run CI --ref
+  <branch>` works once `ci.yml` is on `main`. A personal token would avoid all of it and was not
+  worth a secret.
+- **2026-09-04** — `persist-credentials: false` and a treeless checkout (`filter: tree:0`) do not
+  mix on a private repo: git fetches trees lazily from the promisor remote, that fetch has no
+  credentials once they are dropped, and `nx affected`'s `git diff` dies with "could not read
+  Username for 'https://github.com'" (run 33943280968). CI keeps the dropped credentials and
+  takes the full clone; the repo is small.
+- **2026-09-04** — Ladle stamps `data-theme` on `<html>` from its own `theme` setting, "light" by
+  default even under a dark OS preference, and the tokens' dark media rule is
+  `:root:not([data-theme='light'])`, so a dark colour-scheme emulation alone renders every story
+  light (the first `stories-dark` baselines were byte-identical to the light ones; `menubar--dark` still is, by design: the story sets its own colour scheme on its wrapper). Pass
+  `&theme=dark` in the story URL and assert the page's computed `color-scheme`.
+- **2026-09-04** — Visual baselines are the runner's rendering, not the Mac's. The UI font stack
+  is system fonts, so glyphs differ per OS and Playwright suffixes snapshots `-linux`/`-darwin`.
+  Only CI compares (`ignoreSnapshots: !CI`), `*-darwin.png` is gitignored so a local `CI=1` run
+  cannot commit Mac images, and the runner is pinned to `ubuntu-24.04` in both workflows because
+  moving the image is a baseline change.
+- **2026-09-04** — Branch protection is a paid feature on a private personal repository. Creating the
+  `main` ruleset returned HTTP 403 "Upgrade to GitHub Pro or make this repository public", so the
+  required `verify` check cannot be enforced on this repo as it stands; `.github/ruleset-main.json`
+  is the config to apply (`gh api -X POST repos/<owner>/<repo>/rulesets --input .github/ruleset-main.json`)
+  the day the plan changes. Until then the gate is advisory, and the merge procedure in the `ci.yml` header (AGENTS.md points at it) is the
+  guard. Also: this account's `gh` token cannot read check runs (`gh pr checks` and
+  `statusCheckRollup` return 403 on a personal access token), so read CI results with
+  `gh run list --branch <branch>` and `gh run view <id>`.
+- **2026-09-04** — A `minHeight: '100%'` wrapper in a Ladle story collapses to its content: `#ladle-root`
+  has no definite height in preview mode, so the `Dark` menubar story's "dark page" was a 28px strip
+  over 950px of white, and its baseline was 8KB of green that read as dark coverage (reviewer B). Use
+  `100dvh` for a story that wants the page, and open a menu (`defaultValue`) when the menu surface is
+  the point, or the baseline photographs a closed bar.

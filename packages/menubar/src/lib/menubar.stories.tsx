@@ -27,11 +27,19 @@ function Menus() {
           Redo
         </Menubar.Item>
       </Menubar.Menu>
-      <Menubar.Menu label="View">
-        <Menubar.CheckItem checked={nav} onCheckedChange={setNav} shortcut={{ key: 'b', ctrl: true, meta: true }}>
+      <Menubar.Menu label="View" value="view">
+        <Menubar.CheckItem
+          checked={nav}
+          onCheckedChange={setNav}
+          shortcut={{ key: 'b', ctrl: true, meta: true }}
+        >
           Navigation
         </Menubar.CheckItem>
-        <Menubar.CheckItem checked={inspector} onCheckedChange={setInspector} shortcut={{ key: 'i', ctrl: true, meta: true }}>
+        <Menubar.CheckItem
+          checked={inspector}
+          onCheckedChange={setInspector}
+          shortcut={{ key: 'i', ctrl: true, meta: true }}
+        >
           Inspector
         </Menubar.CheckItem>
         <Menubar.Separator />
@@ -61,12 +69,17 @@ export const Matrix: Story = () => (
   <Menubar aria-label="Matrix menu" defaultValue="all">
     <Menubar.Menu label="All parts" value="all">
       <Menubar.Group label="Items">
-        <Menubar.Item shortcut={{ key: 'o', meta: true }}>Plain item</Menubar.Item>
+        <Menubar.Item shortcut={{ key: 'o', meta: true }}>
+          Plain item
+        </Menubar.Item>
         <Menubar.Item disabled>Disabled item</Menubar.Item>
       </Menubar.Group>
       <Menubar.Separator />
       <Menubar.Label>Bare heading</Menubar.Label>
-      <Menubar.CheckItem checked shortcut={{ key: 'b', ctrl: true, meta: true }}>
+      <Menubar.CheckItem
+        checked
+        shortcut={{ key: 'b', ctrl: true, meta: true }}
+      >
         Checked
       </Menubar.CheckItem>
       <Menubar.CheckItem checked={false}>Unchecked</Menubar.CheckItem>
@@ -81,13 +94,31 @@ export const Matrix: Story = () => (
   </Menubar>
 );
 
-/** The system-colour fallbacks under a dark colour scheme; menus portal into the dark wrapper so they inherit it. */
+/**
+ * The system-colour fallbacks under a dark colour scheme; menus portal into the dark
+ * wrapper so they inherit it. The wrapper takes the viewport (`100%` collapses to the
+ * bar's height under Ladle's root) and View opens on load, so the dark menu surface
+ * is what the visual baseline photographs. The light and dark visual projects take the
+ * same picture of it: the wrapper's own colour scheme wins, so their baselines match.
+ */
 export const Dark: Story = () => {
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null);
   return (
-    <div ref={setWrapper} style={{ colorScheme: 'dark', background: 'Canvas', color: 'CanvasText', minHeight: '100%' }}>
+    <div
+      ref={setWrapper}
+      style={{
+        colorScheme: 'dark',
+        background: 'Canvas',
+        color: 'CanvasText',
+        minHeight: '100dvh', // token-ok: the viewport itself; no --cs-* token names it
+      }}
+    >
       {wrapper && (
-        <Menubar aria-label="Dark menu" portalContainer={wrapper}>
+        <Menubar
+          aria-label="Dark menu"
+          portalContainer={wrapper}
+          defaultValue="view"
+        >
           <Menus />
         </Menubar>
       )}

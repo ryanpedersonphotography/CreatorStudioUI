@@ -97,7 +97,7 @@ undecided. Challenge any of them.
   Library for units, with the shared `tools/src/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
   the Playwright harnesses under `tools/src/verify/` (`cockpit.mjs` at 1440 × 900, `menubar.mjs`
   at 1512 × 982 @2×; `lib.mjs` owns the browser, the preview server and the tally; `all.mjs` runs
-  every harness under one browser and exits once) against the running app or the built bundle.
+  every harness under one browser and exits once) against the running app or the built bundle. The visual baseline sits beside them in `tools/src/visual/` (`@playwright/test`; `playwright.config.mts`, one spec per server, PNGs under `baselines/<project>/`).
   Radix menus in jsdom need the pointer-capture and `scrollIntoView` stubs in the shared setup and
   `@testing-library/user-event` for pointer flows; menus inside the real cockpit open by keyboard in
   specs (see friction notes).
@@ -109,12 +109,25 @@ ported from the reference app. The gate list assumes the tooling under *How it's
 that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
-`typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview` (the last is the browser harness against the built bundle). Boundaries: packages import each
+`typecheck · lint · nx sync:check · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
+against the built bundle, then the visual baseline: every Ladle story and two studio views, each in both colour schemes,
+compared on CI against `tools/src/visual/baselines`, where no pixel may differ beyond Playwright's default per-pixel
+colour threshold of 0.2; a local run only proves the pages load, since the images are the Linux runner's rendering.
+`pnpm visual` starts its own Ladle preview on 61010 and Vite preview on 5181 and refuses a server already on either
+port, so a Ladle dev pane on 61000 can stay up). `.github/workflows/ci.yml` runs the same gate on
+GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected`. Pushing to `main` is the normal path and CI reports on it; a pull request is for a change whose
+images want looking at, which is every UI change, because baselines are regenerated only by the `visual-baselines`
+workflow, dispatched on the branch carrying the UI change, and reviewed as images there (its header has the
+commands; pruning pictures no story names any more is a dispatch input, so a story the manifest lost by accident
+fails the run rather than losing its picture). `.github/ruleset-main.json` would make
+`verify` a required check; GitHub applies rulesets to a private repository only on a paid plan, so until then
+merge only when the green run is for the head commit (the two commands are in the `ci.yml` header; this account's
+`gh` token cannot read checks, so `gh pr checks` 403s). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
 also has a story.
-After adding or removing a project, run `pnpm nx sync` so TS project references follow.
+After adding or removing a project, run `pnpm nx sync` so TS project references follow; `verify` fails when they do not.
 
 **Browser verification is headless, through the Playwright CLI. Nothing an agent runs may open a
 window or tab on the user's screen, and the only exception is Ryan saying so in the current session;
@@ -173,7 +186,7 @@ is the authority; the essentials:
 
 `AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `apps/studio` (composition root: the one place an
 adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapters/local` ·
-`packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` ·
+`packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` · `tools/src/visual/` (visual baseline; `.github/workflows/` runs the gate and regenerates it) ·
 `tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
 `references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
 (review-gate records) · registry entry

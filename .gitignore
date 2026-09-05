@@ -55,3 +55,9 @@ screenshots/*.png
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+# playwright test runner output (visual baselines live in tools/src/visual/baselines, linux only)
+test-results
+playwright-report
+blob-report
+tools/src/visual/baselines/**/*-darwin.png
+tools/src/visual/baselines/**/*-win32.png
