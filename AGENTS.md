@@ -109,15 +109,17 @@ ported from the reference app. The gate list assumes the tooling under *How it's
 that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
-`typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
+`typecheck · lint · nx sync:check · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
 against the built bundle, then the visual baseline: every Ladle story in both colour schemes and four studio views,
-compared on CI against `tools/src/visual/baselines` with no differing pixel allowed; a local run only proves the
-pages load, since the images are the Linux runner's rendering). `.github/workflows/ci.yml` runs the same gate on
-GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected` plus
-`nx sync:check`. Pushing to `main` is the normal path and CI reports on it; a pull request is for a change whose
+compared on CI against `tools/src/visual/baselines`, where no pixel may differ beyond Playwright's default per-pixel
+colour threshold of 0.2; a local run only proves the pages load, since the images are the Linux runner's rendering.
+`pnpm visual` starts its own Ladle preview on 61010 and Vite preview on 5181 and refuses a server already on either
+port, so a Ladle dev pane on 61000 can stay up). `.github/workflows/ci.yml` runs the same gate on
+GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected`. Pushing to `main` is the normal path and CI reports on it; a pull request is for a change whose
 images want looking at, which is every UI change, because baselines are regenerated only by the `visual-baselines`
 workflow, dispatched on the branch carrying the UI change, and reviewed as images there (its header has the
-commands, including the prune of pictures no story names any more). `.github/ruleset-main.json` would make
+commands; pruning pictures no story names any more is a dispatch input, so a story the manifest lost by accident
+fails the run rather than losing its picture). `.github/ruleset-main.json` would make
 `verify` a required check; GitHub applies rulesets to a private repository only on a paid plan, so until then
 merge only when the green run is for the head commit (the two commands are in the `ci.yml` header; this account's
 `gh` token cannot read checks, so `gh pr checks` 403s). Boundaries: packages import each
@@ -125,7 +127,7 @@ other only through `index.ts`, and never import apps (the matrix lives in the ro
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
 also has a story.
-After adding or removing a project, run `pnpm nx sync` so TS project references follow.
+After adding or removing a project, run `pnpm nx sync` so TS project references follow; `verify` fails when they do not.
 
 **Browser verification is headless, through the Playwright CLI. Nothing an agent runs may open a
 window or tab on the user's screen, and the only exception is Ryan saying so in the current session;

@@ -98,7 +98,8 @@ export const Matrix: Story = () => (
  * The system-colour fallbacks under a dark colour scheme; menus portal into the dark
  * wrapper so they inherit it. The wrapper takes the viewport (`100%` collapses to the
  * bar's height under Ladle's root) and View opens on load, so the dark menu surface
- * is what the visual baseline photographs.
+ * is what the visual baseline photographs. The light and dark visual projects take the
+ * same picture of it: the wrapper's own colour scheme wins, so their baselines match.
  */
 export const Dark: Story = () => {
   const [wrapper, setWrapper] = useState<HTMLElement | null>(null);

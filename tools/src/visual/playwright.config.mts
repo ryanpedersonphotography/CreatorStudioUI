@@ -13,7 +13,7 @@
  *
  * Both servers are started here from existing builds; run `pnpm stories:build`
  * and `pnpm nx build studio` first. Ports are fixed and never reused, so a dev
- * server left on 61000 or 5181 fails the run instead of being photographed.
+ * server left on 61010 or 5181 fails the run instead of being photographed.
  */
 import { defineConfig } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
@@ -65,12 +65,12 @@ export default defineConfig({
     {
       name: 'stories',
       testMatch: /stories\.visual\.mts$/,
-      use: { baseURL: 'http://localhost:61000' },
+      use: { baseURL: 'http://localhost:61010' },
     },
     {
       name: 'stories-dark',
       testMatch: /stories\.visual\.mts$/,
-      use: { baseURL: 'http://localhost:61000', colorScheme: 'dark' },
+      use: { baseURL: 'http://localhost:61010', colorScheme: 'dark' },
     },
     {
       name: 'studio',
@@ -81,9 +81,9 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'pnpm exec ladle preview -p 61000',
+      command: 'pnpm exec ladle preview -p 61010',
       cwd: root,
-      url: 'http://localhost:61000/meta.json',
+      url: 'http://localhost:61010/meta.json',
       reuseExistingServer: false,
       env: { BROWSER: 'none' },
       timeout: 30_000,

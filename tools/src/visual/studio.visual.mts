@@ -1,13 +1,14 @@
 /**
  * The studio at the design viewport: the cockpit as it first paints and with the
- * View menu open, in both colour schemes. The view names come from the shared
- * list so the orphan check knows them. Dark comes from the OS preference (the
- * theme is "system" on a fresh profile), so nothing is written to storage, and
- * the page's computed `color-scheme` is asserted so a dark baseline can never
+ * View menu open, in both colour schemes. The views and what each one does come
+ * from the shared list, so the orphan check and this spec cannot part ways and a
+ * renamed view keeps its behaviour. Dark comes from the OS preference (the theme
+ * is "system" on a fresh profile), so nothing is written to storage, and the
+ * page's computed `color-scheme` is asserted so a dark baseline can never
  * quietly become a light one.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { STUDIO_VIEWS } from './baselines.mjs';
+import { SCHEMES, STUDIO_VIEWS } from './baselines.mjs';
 import { failOnPageErrors, settle } from './support.mjs';
 
 type Scheme = 'light' | 'dark';
@@ -23,20 +24,20 @@ async function open(page: Page, colorScheme: Scheme) {
 
 failOnPageErrors();
 
-for (const name of STUDIO_VIEWS) {
-  const at = name.lastIndexOf('-');
-  const view = name.slice(0, at);
-  const scheme = name.slice(at + 1) as Scheme;
-  test(name, async ({ page }) => {
-    await open(page, scheme);
-    if (view === 'view-open') {
-      await page
-        .getByRole('menubar')
-        .getByRole('menuitem', { name: 'View' })
-        .click();
-      await page.getByRole('menu').waitFor();
-      await settle(page);
-    }
-    await expect(page).toHaveScreenshot(`${name}.png`);
-  });
+for (const { view, menu } of STUDIO_VIEWS) {
+  for (const scheme of SCHEMES as Scheme[]) {
+    const name = `${view}-${scheme}`;
+    test(name, async ({ page }) => {
+      await open(page, scheme);
+      if (menu) {
+        await page
+          .getByRole('menubar')
+          .getByRole('menuitem', { name: 'View' })
+          .click();
+        await page.getByRole('menu').waitFor();
+        await settle(page);
+      }
+      await expect(page).toHaveScreenshot(`${name}.png`);
+    });
+  }
 }

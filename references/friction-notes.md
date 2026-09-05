@@ -176,7 +176,7 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
 - **2026-09-04** — Ladle stamps `data-theme` on `<html>` from its own `theme` setting, "light" by
   default even under a dark OS preference, and the tokens' dark media rule is
   `:root:not([data-theme='light'])`, so a dark colour-scheme emulation alone renders every story
-  light (the first `stories-dark` baselines were byte-identical to the light ones). Pass
+  light (the first `stories-dark` baselines were byte-identical to the light ones; `menubar--dark` still is, by design: the story sets its own colour scheme on its wrapper). Pass
   `&theme=dark` in the story URL and assert the page's computed `color-scheme`.
 - **2026-09-04** — Visual baselines are the runner's rendering, not the Mac's. The UI font stack
   is system fonts, so glyphs differ per OS and Playwright suffixes snapshots `-linux`/`-darwin`.
@@ -187,7 +187,7 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   `main` ruleset returned HTTP 403 "Upgrade to GitHub Pro or make this repository public", so the
   required `verify` check cannot be enforced on this repo as it stands; `.github/ruleset-main.json`
   is the config to apply (`gh api -X POST repos/<owner>/<repo>/rulesets --input .github/ruleset-main.json`)
-  the day the plan changes. Until then the gate is advisory, and the merge procedure in AGENTS.md is the
+  the day the plan changes. Until then the gate is advisory, and the merge procedure in the `ci.yml` header (AGENTS.md points at it) is the
   guard. Also: this account's `gh` token cannot read check runs (`gh pr checks` and
   `statusCheckRollup` return 403 on a personal access token), so read CI results with
   `gh run list --branch <branch>` and `gh run view <id>`.

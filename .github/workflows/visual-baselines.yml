@@ -6,18 +6,24 @@
 #
 #   git push -u origin <the branch with the UI change>
 #   gh workflow run visual-baselines --ref <that branch>
+#     -f prune=true         # only after deleting or renaming a story: removes its pictures
 #   gh run watch
 #   gh pr create            # or, on an already-open pull request, release the CI run
 #                           # the bot's push created (it is held, action_required):
 #                           # gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve
 #
-# Orphan PNGs (a story deleted or renamed) are pruned first, so the commit also
-# removes pictures nothing names any more. Actions are pinned to commits here,
-# not tags: this job can push.
+# Orphan PNGs (a story deleted or renamed) are pruned only with `prune=true`, so a
+# story the manifest lost by accident fails the confirm step as a missing picture
+# instead of losing it. Actions are pinned to commits here, not tags: this job can push.
 name: visual-baselines
 
 on:
   workflow_dispatch:
+    inputs:
+      prune:
+        description: Delete baselines no story or view names any more (after a deliberate story deletion or rename)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -54,6 +60,7 @@ jobs:
       - run: pnpm exec nx build studio
 
       - name: Prune baselines no story or view names any more
+        if: ${{ inputs.prune }}
         run: node tools/src/visual/baselines.mjs --prune
 
       - name: Regenerate baselines that changed or are missing
