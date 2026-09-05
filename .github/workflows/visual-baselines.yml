@@ -5,16 +5,17 @@
 # baselines made from main's pixels do not match the change:
 #
 #   git push -u origin <the branch with the UI change>
-#   gh workflow run visual-baselines --ref <that branch>
-#     -f prune=true         # only after deleting or renaming a story: removes its pictures
+#   gh workflow run visual-baselines --ref <that branch> \
+#     -f prune=true         # only after removing or renaming a story on purpose: deletes its pictures
 #   gh run watch
 #   gh pr create            # or, on an already-open pull request, release the CI run
 #                           # the bot's push created (it is held, action_required):
 #                           # gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve
 #
-# Orphan PNGs (a story deleted or renamed) are pruned only with `prune=true`, so a
-# story the manifest lost by accident fails the confirm step as a missing picture
-# instead of losing it. Actions are pinned to commits here, not tags: this job can push.
+# Orphan PNGs are pruned only with `prune=true`. Without it a story that left the
+# manifest fails the confirm step as an orphan, whether it was removed on purpose or
+# the Ladle build stopped finding it: look before you prune. Actions are pinned to
+# commits here, not tags: this job can push.
 name: visual-baselines
 
 on:

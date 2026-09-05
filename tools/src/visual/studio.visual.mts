@@ -11,7 +11,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { SCHEMES, STUDIO_VIEWS } from './baselines.mjs';
 import { failOnPageErrors, settle } from './support.mjs';
 
-type Scheme = 'light' | 'dark';
+type Scheme = (typeof SCHEMES)[number];
 
 async function open(page: Page, colorScheme: Scheme) {
   await page.emulateMedia({ colorScheme });
@@ -25,7 +25,7 @@ async function open(page: Page, colorScheme: Scheme) {
 failOnPageErrors();
 
 for (const { view, menu } of STUDIO_VIEWS) {
-  for (const scheme of SCHEMES as Scheme[]) {
+  for (const scheme of SCHEMES) {
     const name = `${view}-${scheme}`;
     test(name, async ({ page }) => {
       await open(page, scheme);

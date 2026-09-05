@@ -110,7 +110,7 @@ that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
 `typecheck · lint · nx sync:check · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
-against the built bundle, then the visual baseline: every Ladle story in both colour schemes and four studio views,
+against the built bundle, then the visual baseline: every Ladle story and two studio views, each in both colour schemes,
 compared on CI against `tools/src/visual/baselines`, where no pixel may differ beyond Playwright's default per-pixel
 colour threshold of 0.2; a local run only proves the pages load, since the images are the Linux runner's rendering.
 `pnpm visual` starts its own Ladle preview on 61010 and Vite preview on 5181 and refuses a server already on either

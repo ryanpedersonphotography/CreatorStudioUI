@@ -1,5 +1,5 @@
 /**
- * Visual baseline: every Ladle story in both colour schemes plus four studio views,
+ * Visual baseline: every Ladle story in both colour schemes plus two studio views in both colour schemes,
  * screenshotted at the design viewport (1512×982, 1×) and compared against the PNGs
  * in ./baselines with no differing pixel allowed (at Playwright's default per-pixel
  * colour threshold, which is what lets identical antialiasing count as identical).
