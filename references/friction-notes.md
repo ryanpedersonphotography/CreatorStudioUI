@@ -154,3 +154,19 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   mutation looked green. Give the watcher a second (`sleep 2`) after the edit, and grep the file
   to confirm the mutation landed, before trusting a red-or-green from the dev server.
 
+- **2026-09-04** — Ladle 5's documented story-loaded signal photographs the spinner. The visual
+  snapshot recipe waits on `[data-storyloaded]`, but in 5.1.1 the attribute is on `<html>` from
+  about 50ms while the loading ring is still in the DOM until about 380ms (sampled every 50ms on
+  the built preview), so `toHaveScreenshot` captured a blank page with the ring. The mount signal
+  that holds is the ring leaving: `locator('.ladle-ring').waitFor({ state: 'detached' })`, then a
+  child under `#ladle-root`. `tools/src/visual/stories.visual.mts` does that.
+- **2026-09-04** — A push made with the workflow's own `GITHUB_TOKEN` triggers no workflow run.
+  The `visual-baselines` job commits regenerated PNGs to the branch it was dispatched on, and
+  that push does not start CI, so a pull request opened *after* the dispatch gets its run from
+  the `opened` event, while an already-open PR needs `gh workflow run CI --ref <branch>` (CI has
+  `workflow_dispatch` for exactly this). A personal token would fix it and was not worth a secret.
+- **2026-09-04** — Visual baselines are the runner's rendering, not the Mac's. The UI font stack
+  is system fonts, so glyphs differ per OS and Playwright suffixes snapshots `-linux`/`-darwin`.
+  Only CI compares (`ignoreSnapshots: !CI`), `*-darwin.png` is gitignored so a local `CI=1` run
+  cannot commit Mac images, and the runner is pinned to `ubuntu-24.04` in both workflows because
+  moving the image is a baseline change.

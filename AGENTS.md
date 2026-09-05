@@ -97,7 +97,7 @@ undecided. Challenge any of them.
   Library for units, with the shared `tools/src/vitest/setup.ts` (jsdom lacks `ResizeObserver`);
   the Playwright harnesses under `tools/src/verify/` (`cockpit.mjs` at 1440 × 900, `menubar.mjs`
   at 1512 × 982 @2×; `lib.mjs` owns the browser, the preview server and the tally; `all.mjs` runs
-  every harness under one browser and exits once) against the running app or the built bundle.
+  every harness under one browser and exits once) against the running app or the built bundle. The visual baseline sits beside them in `tools/src/visual/` (`@playwright/test`; `playwright.config.mts`, one spec per server, PNGs under `baselines/<project>/`).
   Radix menus in jsdom need the pointer-capture and `scrollIntoView` stubs in the shared setup and
   `@testing-library/user-event` for pointer flows; menus inside the real cockpit open by keyboard in
   specs (see friction notes).
@@ -109,7 +109,13 @@ ported from the reference app. The gate list assumes the tooling under *How it's
 that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
-`typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview` (the last is the browser harness against the built bundle). Boundaries: packages import each
+`typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
+against the built bundle, then the visual baseline: every Ladle story and four studio views, compared pixel for
+pixel on CI against `tools/src/visual/baselines`; a local run only proves the pages load, since the images are the
+Linux runner's rendering). `.github/workflows/ci.yml` runs the same gate on GitHub for every push to `main` and
+every pull request (the Nx targets through `nx affected`) and is the required check on `main`. Baselines change
+only through the `visual-baselines` workflow, dispatched on a branch and reviewed as images in its pull request
+(the header of that workflow has the three commands). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
@@ -173,7 +179,7 @@ is the authority; the essentials:
 
 `AGENTS.md` (this file) · `CLAUDE.md` (pointer) · `apps/studio` (composition root: the one place an
 adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapters/local` ·
-`packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` ·
+`packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` · `tools/src/visual/` (visual baseline; `.github/workflows/` runs the gate and regenerates it) ·
 `tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
 `references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
 (review-gate records) · registry entry

@@ -18,7 +18,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.mjs"
+    "src/**/*.mjs",
+    "src/**/*.mts"
   ],
   "references": []
 }

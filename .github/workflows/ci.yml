@@ -1,0 +1,71 @@
+# The `pnpm verify` gate (AGENTS.md > Conventions), run on GitHub for every push to
+# main and every pull request. The Nx targets go through `nx affected`; the rest of
+# the gate is root scripts, run in the same order as the local script. The `verify`
+# job is the required status check on main (repository ruleset "main").
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Re-run by hand, e.g. after the visual-baselines bot commits to a PR branch
+  # (a push made with the workflow token does not trigger this workflow).
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    # Pinned, not ubuntu-latest: the visual baselines are rendered with this image's
+    # fonts, so a runner image change is a deliberate baseline change, not a surprise.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      # Node comes from engines.node in package.json; pnpm from packageManager.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # verify:ui and the visual baseline drive headless Chromium through the
+      # `playwright` library and `@playwright/test`, pinned to the same version.
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - uses: nrwl/nx-set-shas@v5
+
+      - run: pnpm exec nx affected -t typecheck lint test build
+
+      - run: pnpm lint:tokens
+      - run: pnpm stories:build
+      # verify:ui --preview and the visual baseline serve apps/studio/dist; affected may not have built it.
+      - run: pnpm exec nx build studio
+      - run: pnpm verify:ui --preview
+      # Compares against tools/src/visual/baselines (CI=true turns the comparison on).
+      - run: pnpm visual
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-output
+          path: |
+            screenshots/*.png
+            test-results/visual
+            playwright-report/visual
+          if-no-files-found: ignore
