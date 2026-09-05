@@ -85,7 +85,21 @@ commented tags; the treeless-clone diagnosis and fix; the `token-ok` exemption i
 Material fixes re-review their changed parts. Budget rung: one opus reviewer on the diff only
 (`rereview3-brief.md` → `rereview3.md`), not two on the whole.
 
-ROUND3_PENDING
+Reviewer (`rereview3.md`) confirmed every round-2 row by execution: the prune gate by the run's
+steps (33946889447: prune step `success`, main guard `skipped`), the orphan walk on a copy of the
+module with planted cases, the port move by the green run on the tip (33946901289), and the merge
+check by running the header command verbatim. Findings:
+
+| # | Finding (headline) | Disposition |
+|---|---|---|
+| R3-1 | Material. The two comments nearest the failure said a lost story "fails as a missing picture"; it fails as an orphan, and that wording steers a red-CI operator to the prune that would destroy it. | Fixed `7066910`. The docblock and the workflow header name both causes of an orphan; the report line itself says which action fits which cause. Prose plus one log message, cited in the diff; not sent for a fourth pass. |
+| R3-2 | Minor. The dispatch recipe's prune line had no continuation. | Fixed `7066910`: backslash continuation. |
+| R3-3 | Minor. A PNG without a platform suffix, or a `-darwin`-only file, was invisible to the walk. | Fixed `7066910`. Files that fit no baseline name are orphans; other platforms' local pictures stay ignored (gitignored). Seen failing on a planted `studio/stray.png` before trusting it. |
+| R3-4 | Minor. `SCHEMES as Scheme[]` told TypeScript nothing. | Fixed `7066910`: the list is a const tuple and the spec's scheme type derives from it. |
+| R3-5 | Minor. "Four studio views" in two places; there are two views in both schemes. | Fixed `7066910`. |
+
+Not executed by anyone: a dispatch that omits the `prune` input; GitHub's documented boolean
+handling of the `inputs` context covers it. Accepted.
 
 ## Accepted risks, on the record
 
