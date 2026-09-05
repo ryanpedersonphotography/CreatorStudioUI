@@ -13,6 +13,17 @@ export const REGION_TITLES: Readonly<Record<StudioRegion, string>> = {
   inspector: 'Inspector',
 };
 
+/** The cockpit's edges. A region's glyph is the cockpit's outline with this segment marked. */
+export type RegionSide = 'left' | 'right' | 'top' | 'bottom';
+
+/** Which edge each region sits on, so a glyph can show the layout rather than name it. */
+export const REGION_SIDES: Readonly<Record<StudioRegion, RegionSide>> = {
+  top: 'top',
+  nav: 'left',
+  context: 'bottom',
+  inspector: 'right',
+};
+
 /**
  * A region's landmark can take focus when the control that was pressed
  * unmounts with the content it swapped out (see the preset's focus handoff).

@@ -2,7 +2,8 @@ import type { LayoutStore, PreferenceStore } from '@creator-studio/contracts';
 import { Menubar } from '@creator-studio/menubar';
 import { parseTheme } from '@creator-studio/tokens';
 import { useStudioCommands } from './studio-commands.js';
-import type { StudioRegion } from './studio-regions.js';
+import { PanelGlyph } from './panel-glyph.js';
+import { REGION_SIDES, type StudioRegion } from './studio-regions.js';
 import { useTheme } from './use-theme.js';
 
 /** View lists the regions the way VS Code's Appearance does: sidebars first, the bar itself last. */
@@ -21,7 +22,9 @@ export interface StudioMenusProps {
  * disabled nothing in these menus is focusable, so the heading is a sighted
  * affordance until a real item lands (then the group name is announced too). Every dropdown carries
  * `data-region="top"` so the focus handoff knows a menu item belongs to the top
- * shelf though it renders in a body portal.
+ * shelf though it renders in a body portal. View's region items carry the
+ * panel glyph with their edge filled while the region is shown, so the menu
+ * reads as the layout it controls; the check mark stays in its gutter.
  */
 export function StudioMenus({ store, projectId }: StudioMenusProps) {
   const { regions, resetLayout } = useStudioCommands({ store, projectId });
@@ -50,8 +53,12 @@ export function StudioMenus({ store, projectId }: StudioMenusProps) {
         {VIEW_ORDER.map((id) => {
           const command = regions[id];
           return (
-            <Menubar.CheckItem key={id} checked={command.checked} onCheckedChange={command.run} shortcut={command.shortcut}>
-              {command.title}
+            <Menubar.CheckItem key={id} checked={command.checked} onCheckedChange={command.run} shortcut={command.shortcut} textValue={command.title}>
+              {/* The glyph shows the layout the item toggles: its edge filled while shown. textValue keeps typeahead on the title. */}
+              <span className="inline-flex items-center gap-sm">
+                <PanelGlyph side={REGION_SIDES[id]} filled={command.checked === true} className="shrink-0 text-ink-muted" />
+                {command.title}
+              </span>
             </Menubar.CheckItem>
           );
         })}
