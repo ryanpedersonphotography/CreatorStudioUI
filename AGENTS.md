@@ -188,7 +188,8 @@ adapter meets a port) · `packages/{contracts,shell,tokens}` · `packages/adapte
 `packages/menubar` (portable; its README is its contract) · `tools/src/lint/check-tokens.mjs` · `tools/src/visual/` (visual baseline; `.github/workflows/` runs the gate and regenerates it) ·
 `tools/src/verify/` · `.ladle/` · `screenshots/` (untracked proof) ·
 `references/friction-notes.md` (footguns that must survive sessions) · `references/reviews/`
-(review-gate records) · registry entry
+(review-gate records) · `references/specs/` (design specs an implementation plan is written from; a
+spec's status line says whether it is live or paused) · registry entry
 `~/.claude/scripts/proj/bin/proj get creator-studio-ui` · transcripts
 `~/.claude/projects/-Users-ryanpederson-NewDev-CreatorStudioUI/` · reference app
 `/Users/ryanpederson/Downloads/finalproject/lost-lantern-studio` (read `docs/footguns.md` and
