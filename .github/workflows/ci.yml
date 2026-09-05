@@ -4,7 +4,16 @@
 # job is the check a pull request must show green before it merges.
 # .github/ruleset-main.json is the ruleset that would enforce that; GitHub applies
 # rulesets to a private repository only on a paid plan, so until then the check is
-# advisory: `gh run list --branch <branch>` must show verify green before `gh pr merge`.
+# advisory, and green must be for the head commit, not an older one on the branch
+# (a bot push after the last run leaves a stale green at the top of the list):
+#
+#   gh run list --branch <b> --workflow CI --status success --limit 1 --json headSha --jq '.[0].headSha'
+#   gh pr view <n> --json headRefOid --jq .headRefOid      # merge only when the two match
+#
+# A workflow_dispatch re-run tests the branch tip, not the branch merged with main.
+# Pushing to main directly is the normal path; a pull request is for a change whose
+# images want looking at, which is every UI change (see visual-baselines.yml).
+# `gh workflow run CI --ref <b>` works once this file is on main.
 name: CI
 
 on:
@@ -21,7 +30,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded pull-request runs stop; every push to main keeps its own verdict
+  # (nx-set-shas also bases `affected` on the last successful main run).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:
@@ -34,6 +45,7 @@ jobs:
         with:
           filter: tree:0
           fetch-depth: 0
+          persist-credentials: false # this job never pushes
 
       - uses: pnpm/action-setup@v6
         with:
@@ -54,6 +66,8 @@ jobs:
       - uses: nrwl/nx-set-shas@v5
 
       - run: pnpm exec nx affected -t typecheck lint test build
+      # TS project references must be current (AGENTS.md asks a human to run `nx sync`).
+      - run: pnpm exec nx sync:check
 
       - run: pnpm lint:tokens
       - run: pnpm stories:build
@@ -72,3 +86,4 @@ jobs:
             test-results/visual
             playwright-report/visual
           if-no-files-found: ignore
+          retention-days: 7

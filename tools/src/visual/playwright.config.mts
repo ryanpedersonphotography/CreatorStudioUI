@@ -1,7 +1,9 @@
 /**
- * Visual baseline: every Ladle story plus four studio views, screenshotted at the
- * design viewport (1512×982, 1×) and compared pixel for pixel against the PNGs in
- * ./baselines. The comparison runs only on CI: glyph rendering differs per OS, so
+ * Visual baseline: every Ladle story in both colour schemes plus four studio views,
+ * screenshotted at the design viewport (1512×982, 1×) and compared against the PNGs
+ * in ./baselines with no differing pixel allowed (at Playwright's default per-pixel
+ * colour threshold, which is what lets identical antialiasing count as identical).
+ * The comparison runs only on CI: glyph rendering differs per OS, so
  * baselines are generated on the same Linux runner that compares them (the
  * `visual-baselines` workflow) and carry a `-linux` suffix. A local run still
  * loads every page and fails on a page or console error, but skips the images.
@@ -24,12 +26,21 @@ export default defineConfig({
   testDir: here,
   testMatch: /\.visual\.mts$/,
   outputDir: `${root}test-results/visual`,
-  snapshotPathTemplate: '{testDir}/baselines/{projectName}/{arg}-{platform}{ext}',
+  snapshotPathTemplate:
+    '{testDir}/baselines/{projectName}/{arg}-{platform}{ext}',
   fullyParallel: true,
   forbidOnly: CI,
   retries: 0,
   workers: CI ? 2 : undefined,
-  reporter: CI ? [['list'], ['html', { open: 'never', outputFolder: `${root}playwright-report/visual` }]] : 'list',
+  reporter: CI
+    ? [
+        ['list'],
+        [
+          'html',
+          { open: 'never', outputFolder: `${root}playwright-report/visual` },
+        ],
+      ]
+    : 'list',
   ignoreSnapshots: !CI,
   use: {
     viewport: { width: 1512, height: 982 },
@@ -39,12 +50,34 @@ export default defineConfig({
     video: 'off',
   },
   expect: {
-    // Strict on purpose: the runner image is pinned, so a differing pixel is a change.
-    toHaveScreenshot: { animations: 'disabled', caret: 'hide', maxDiffPixels: 0 },
+    // No pixel may differ by more than the default YIQ threshold of 0.2; the runner
+    // image, the browser build and disabled animations are the three pins that make
+    // a stricter setting than a tolerance sustainable. Do not add maxDiffPixels: a
+    // tolerance wide enough to absorb a font shift also hides a wrong 48px rail.
+    toHaveScreenshot: {
+      animations: 'disabled',
+      caret: 'hide',
+      maxDiffPixels: 0,
+      threshold: 0.2,
+    },
   },
   projects: [
-    { name: 'stories', testMatch: /stories\.visual\.mts$/, use: { baseURL: 'http://localhost:61000' } },
-    { name: 'studio', testMatch: /studio\.visual\.mts$/, use: { baseURL: 'http://localhost:5181' } },
+    {
+      name: 'stories',
+      testMatch: /stories\.visual\.mts$/,
+      use: { baseURL: 'http://localhost:61000' },
+    },
+    {
+      name: 'stories-dark',
+      testMatch: /stories\.visual\.mts$/,
+      use: { baseURL: 'http://localhost:61000', colorScheme: 'dark' },
+    },
+    {
+      name: 'studio',
+      testMatch: /studio\.visual\.mts$/,
+      use: { baseURL: 'http://localhost:5181' },
+    },
+    { name: 'manifest', testMatch: /manifest\.visual\.mts$/ },
   ],
   webServer: [
     {

@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, type Page } from '@playwright/test';
 
 const seen = new WeakMap<object, string[]>();
 
@@ -15,5 +15,19 @@ export function failOnPageErrors() {
   test.afterEach(async ({ page }) => {
     const errors = seen.get(page) ?? [];
     if (errors.length) throw new Error(`page errors:\n${errors.join('\n')}`);
+  });
+}
+
+/**
+ * Fonts loaded and two frames painted. A portalled Radix menu is in the DOM, and
+ * answers a role query, a frame before floating-ui writes its position; a shot
+ * taken in that frame is an unreproducible red against a zero-pixel tolerance.
+ */
+export async function settle(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
   });
 }

@@ -110,15 +110,17 @@ that changes. Challenge any rule here the same way.
 
 **Enforced — a gate fails the build.** `pnpm verify` runs, from the root and in order:
 `typecheck · lint · lint:tokens · test · stories:build · build · verify:ui --preview · visual` (the browser harness
-against the built bundle, then the visual baseline: every Ladle story and four studio views, compared pixel for
-pixel on CI against `tools/src/visual/baselines`; a local run only proves the pages load, since the images are the
-Linux runner's rendering). `.github/workflows/ci.yml` runs the same gate on GitHub for every push to `main` and
-every pull request (the Nx targets through `nx affected`) and is the check a pull request must show green before
-it merges. `.github/ruleset-main.json` is the ruleset that would enforce that; GitHub applies rulesets to a
-private repository only on a paid plan, so until then the check is advisory: `gh run list --branch <branch>` must
-show `verify` green before `gh pr merge` (this account's `gh` token cannot read checks, so `gh pr checks` 403s). Baselines change
-only through the `visual-baselines` workflow, dispatched on a branch and reviewed as images in its pull request
-(the header of that workflow has the three commands). Boundaries: packages import each
+against the built bundle, then the visual baseline: every Ladle story in both colour schemes and four studio views,
+compared on CI against `tools/src/visual/baselines` with no differing pixel allowed; a local run only proves the
+pages load, since the images are the Linux runner's rendering). `.github/workflows/ci.yml` runs the same gate on
+GitHub for every push to `main` and every pull request, with the Nx targets narrowed to `nx affected` plus
+`nx sync:check`. Pushing to `main` is the normal path and CI reports on it; a pull request is for a change whose
+images want looking at, which is every UI change, because baselines are regenerated only by the `visual-baselines`
+workflow, dispatched on the branch carrying the UI change, and reviewed as images there (its header has the
+commands, including the prune of pictures no story names any more). `.github/ruleset-main.json` would make
+`verify` a required check; GitHub applies rulesets to a private repository only on a paid plan, so until then
+merge only when the green run is for the head commit (the two commands are in the `ci.yml` header; this account's
+`gh` token cannot read checks, so `gh pr checks` 403s). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root
 `eslint.config.mjs`; a `type:ui` file importing an adapter fails lint). No raw values outside the
 token package. TS strict, no `any`. Every export from a package's `index.ts` has a test; every component export
