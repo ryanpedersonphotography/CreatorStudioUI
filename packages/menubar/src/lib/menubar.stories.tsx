@@ -109,7 +109,7 @@ export const Dark: Story = () => {
         colorScheme: 'dark',
         background: 'Canvas',
         color: 'CanvasText',
-        minHeight: '100dvh',
+        minHeight: '100dvh', // token-ok: the viewport itself; no --cs-* token names it
       }}
     >
       {wrapper && (
