@@ -2,25 +2,25 @@
 # main and every pull request. The Nx targets go through `nx affected`; the rest of
 # the gate is root scripts, run in the same order as the local script. The `verify`
 # job is the check a pull request must show green before it merges.
-# .github/ruleset-main.json is the ruleset that would enforce that; GitHub applies
-# rulesets to a private repository only on a paid plan, so until then the check is
-# advisory, and green must be for the head commit, not an older one on the branch
-# (a bot push after the last run leaves a stale green at the top of the list). Read
-# the newest pull-request run whatever its result, so a later red on the same commit
-# is not hidden behind an earlier green, and not a dispatch run, which tests the
-# branch tip rather than the branch merged with main:
+# .github/ruleset-main.json is applied (the repo is public, which is what makes a
+# ruleset free): `verify` is a required check on main, main cannot be deleted or
+# force-pushed, and a push to main of a commit that has not passed `verify` is refused.
+# So every change, docs included, goes through a branch and a pull request:
 #
-#   gh run list --branch <b> --workflow CI --event pull_request --limit 1 --json conclusion,headSha --jq '.[0] | "\(.conclusion) \(.headSha)"'
-#   gh pr view <n> --json headRefOid --jq .headRefOid      # merge only on `success` with a matching SHA
+#   git switch -c <b> && git push -u origin <b>
+#   gh pr create --fill
+#   gh pr merge <n> --auto --merge      # GitHub merges it the moment verify is green
 #
-# Pushing to main directly is the normal path; a pull request is for a change whose
-# images want looking at, which is every UI change (see visual-baselines.yml).
-# A push made by the visual-baselines bot creates a pull-request run that is held
-# (action_required, no jobs); release it, or push again:
+# The pull-request run is the one that counts: it tests the branch merged with main,
+# and the ruleset's strict policy makes a branch behind main update first. To watch a
+# run: `gh run list --branch <b>` / `gh run watch <id>`; this account's gh token cannot
+# read check runs, so `gh pr checks` 403s. A push made by the visual-baselines bot to
+# the pull request creates a run that is held (action_required, no jobs); release it,
+# or push again:
 #
 #   gh api -X POST repos/<owner>/<repo>/actions/runs/<run id>/approve
 #
-# `gh workflow run CI --ref <b>` also works once this file is on main.
+# `gh workflow run CI --ref <b>` re-runs the gate by hand on a branch tip.
 name: CI
 
 on:

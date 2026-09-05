@@ -61,3 +61,7 @@ playwright-report
 blob-report
 tools/src/visual/baselines/**/*-darwin.png
 tools/src/visual/baselines/**/*-win32.png
+
+# secrets never leave the machine
+.env
+.env.*

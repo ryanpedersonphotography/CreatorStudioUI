@@ -191,6 +191,8 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   guard. Also: this account's `gh` token cannot read check runs (`gh pr checks` and
   `statusCheckRollup` return 403 on a personal access token), so read CI results with
   `gh run list --branch <branch>` and `gh run view <id>`.
+  Applied on 2026-09-05 (ruleset 22338497) when Ryan chose to make the repo public: `verify` is required on
+  `main`, a direct push of an untested commit is refused, and pull requests merge with `gh pr merge --auto`.
 - **2026-09-04** — A `minHeight: '100%'` wrapper in a Ladle story collapses to its content: `#ladle-root`
   has no definite height in preview mode, so the `Dark` menubar story's "dark page" was a 28px strip
   over 950px of white, and its baseline was 8KB of green that read as dark coverage (reviewer B). Use
