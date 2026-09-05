@@ -160,11 +160,24 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   the built preview), so `toHaveScreenshot` captured a blank page with the ring. The mount signal
   that holds is the ring leaving: `locator('.ladle-ring').waitFor({ state: 'detached' })`, then a
   child under `#ladle-root`. `tools/src/visual/stories.visual.mts` does that.
-- **2026-09-04** — A push made with the workflow's own `GITHUB_TOKEN` triggers no workflow run.
-  The `visual-baselines` job commits regenerated PNGs to the branch it was dispatched on, and
-  that push does not start CI, so a pull request opened *after* the dispatch gets its run from
-  the `opened` event, while an already-open PR needs `gh workflow run CI --ref <branch>` (CI has
-  `workflow_dispatch` for exactly this). A personal token would fix it and was not worth a secret.
+- **2026-09-04** — A push made with the workflow's own `GITHUB_TOKEN` does not start CI by itself.
+  The `visual-baselines` job commits regenerated PNGs to the branch it was dispatched on; on an
+  already-open pull request that push creates a `pull_request` run that sits at `action_required`
+  with no jobs (run 33943368076). `gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve`
+  releases it (verified on that run), or any push by a person starts a fresh run; a pull request
+  opened *after* the dispatch gets its run from the `opened` event, and `gh workflow run CI --ref
+  <branch>` works once `ci.yml` is on `main`. A personal token would avoid all of it and was not
+  worth a secret.
+- **2026-09-04** — `persist-credentials: false` and a treeless checkout (`filter: tree:0`) do not
+  mix on a private repo: git fetches trees lazily from the promisor remote, that fetch has no
+  credentials once they are dropped, and `nx affected`'s `git diff` dies with "could not read
+  Username for 'https://github.com'" (run 33943280968). CI keeps the dropped credentials and
+  takes the full clone; the repo is small.
+- **2026-09-04** — Ladle stamps `data-theme` on `<html>` from its own `theme` setting, "light" by
+  default even under a dark OS preference, and the tokens' dark media rule is
+  `:root:not([data-theme='light'])`, so a dark colour-scheme emulation alone renders every story
+  light (the first `stories-dark` baselines were byte-identical to the light ones). Pass
+  `&theme=dark` in the story URL and assert the page's computed `color-scheme`.
 - **2026-09-04** — Visual baselines are the runner's rendering, not the Mac's. The UI font stack
   is system fonts, so glyphs differ per OS and Playwright suffixes snapshots `-linux`/`-darwin`.
   Only CI compares (`ignoreSnapshots: !CI`), `*-darwin.png` is gitignored so a local `CI=1` run

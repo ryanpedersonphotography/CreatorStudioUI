@@ -7,9 +7,9 @@
 #   git push -u origin <the branch with the UI change>
 #   gh workflow run visual-baselines --ref <that branch>
 #   gh run watch
-#   gh pr create            # open the pull request after the bot's commit: a push
-#                           # made with the workflow token starts no CI run, so an
-#                           # already-open PR needs `gh workflow run CI --ref <b>`
+#   gh pr create            # or, on an already-open pull request, release the CI run
+#                           # the bot's push created (it is held, action_required):
+#                           # gh api -X POST repos/<owner>/<repo>/actions/runs/<id>/approve
 #
 # Orphan PNGs (a story deleted or renamed) are pruned first, so the commit also
 # removes pictures nothing names any more. Actions are pinned to commits here,

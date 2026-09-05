@@ -13,15 +13,20 @@
 # A workflow_dispatch re-run tests the branch tip, not the branch merged with main.
 # Pushing to main directly is the normal path; a pull request is for a change whose
 # images want looking at, which is every UI change (see visual-baselines.yml).
-# `gh workflow run CI --ref <b>` works once this file is on main.
+# A push made by the visual-baselines bot creates a pull-request run that is held
+# (action_required, no jobs); release it, or push again:
+#
+#   gh api -X POST repos/<owner>/<repo>/actions/runs/<run id>/approve
+#
+# `gh workflow run CI --ref <b>` also works once this file is on main.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-  # Re-run by hand, e.g. after the visual-baselines bot commits to a PR branch
-  # (a push made with the workflow token does not trigger this workflow).
+  # Re-run by hand. A push made with the workflow token (the visual-baselines bot)
+  # yields a pull-request run held for approval instead; see the header.
   workflow_dispatch:
 
 permissions:
@@ -41,9 +46,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      # Full history for nx-set-shas, and a full clone: a treeless one (filter: tree:0)
+      # fetches trees lazily, which needs the credentials this job deliberately drops.
       - uses: actions/checkout@v7
         with:
-          filter: tree:0
           fetch-depth: 0
           persist-credentials: false # this job never pushes
 
