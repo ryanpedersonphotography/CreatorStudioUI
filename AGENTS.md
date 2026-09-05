@@ -113,7 +113,10 @@ that changes. Challenge any rule here the same way.
 against the built bundle, then the visual baseline: every Ladle story and four studio views, compared pixel for
 pixel on CI against `tools/src/visual/baselines`; a local run only proves the pages load, since the images are the
 Linux runner's rendering). `.github/workflows/ci.yml` runs the same gate on GitHub for every push to `main` and
-every pull request (the Nx targets through `nx affected`) and is the required check on `main`. Baselines change
+every pull request (the Nx targets through `nx affected`) and is the check a pull request must show green before
+it merges. `.github/ruleset-main.json` is the ruleset that would enforce that; GitHub applies rulesets to a
+private repository only on a paid plan, so until then the check is advisory: `gh run list --branch <branch>` must
+show `verify` green before `gh pr merge` (this account's `gh` token cannot read checks, so `gh pr checks` 403s). Baselines change
 only through the `visual-baselines` workflow, dispatched on a branch and reviewed as images in its pull request
 (the header of that workflow has the three commands). Boundaries: packages import each
 other only through `index.ts`, and never import apps (the matrix lives in the root

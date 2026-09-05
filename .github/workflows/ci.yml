@@ -1,7 +1,10 @@
 # The `pnpm verify` gate (AGENTS.md > Conventions), run on GitHub for every push to
 # main and every pull request. The Nx targets go through `nx affected`; the rest of
 # the gate is root scripts, run in the same order as the local script. The `verify`
-# job is the required status check on main (repository ruleset "main").
+# job is the check a pull request must show green before it merges.
+# .github/ruleset-main.json is the ruleset that would enforce that; GitHub applies
+# rulesets to a private repository only on a paid plan, so until then the check is
+# advisory: `gh run list --branch <branch>` must show verify green before `gh pr merge`.
 name: CI
 
 on:

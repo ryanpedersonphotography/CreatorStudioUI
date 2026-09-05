@@ -170,3 +170,11 @@ Footguns and lessons that must survive between sessions. Add to the top; never d
   Only CI compares (`ignoreSnapshots: !CI`), `*-darwin.png` is gitignored so a local `CI=1` run
   cannot commit Mac images, and the runner is pinned to `ubuntu-24.04` in both workflows because
   moving the image is a baseline change.
+- **2026-09-04** — Branch protection is a paid feature on a private personal repository. Creating the
+  `main` ruleset returned HTTP 403 "Upgrade to GitHub Pro or make this repository public", so the
+  required `verify` check cannot be enforced on this repo as it stands; `.github/ruleset-main.json`
+  is the config to apply (`gh api -X POST repos/<owner>/<repo>/rulesets --input .github/ruleset-main.json`)
+  the day the plan changes. Until then the gate is advisory, and the merge procedure in AGENTS.md is the
+  guard. Also: this account's `gh` token cannot read check runs (`gh pr checks` and
+  `statusCheckRollup` return 403 on a personal access token), so read CI results with
+  `gh run list --branch <branch>` and `gh run view <id>`.

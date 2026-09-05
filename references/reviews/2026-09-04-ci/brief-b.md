@@ -41,9 +41,16 @@ Targets, in priority order. For each, say what is missing and what you would add
 6. What the property harnesses already cover that the baseline duplicates, and what the baseline
    covers that nothing else does. Is the split sane?
 
-You may run read-only commands and local checks (`pnpm visual`, `pnpm nx run tools:lint`). Do not
+You may run read-only commands and `pnpm nx run tools:lint`. Do not start any server or run `pnpm visual`
+or `pnpm verify:ui` (the other reviewer holds ports 61000 and 5181; judge from the files, the committed
+PNGs and the GitHub run logs). Do not
 edit any file, do not push, do not create or merge anything on GitHub, do not run `gh api` with a
 method other than GET. Work in /Users/ryanpederson/NewDev/CreatorStudioUI; use absolute paths.
+
+Known before you start: GitHub refused the ruleset on this private repository (HTTP 403, "Upgrade to
+GitHub Pro or make this repository public"), so `.github/ruleset-main.json` is kept for when it can be
+applied and the check is advisory; AGENTS.md and the ci.yml header state the merge procedure. Assess that
+procedure and its escape hatches rather than the ruleset's enforcement.
 
 Report in markdown: `## Findings` (each: severity Material/Minor, file:line or log line, what is
 missing or wrong, the fix you would make with its cost), `## Clean passes` (what you checked, how,

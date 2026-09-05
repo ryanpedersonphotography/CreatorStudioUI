@@ -47,9 +47,15 @@ Targets, in priority order. For each, say whether it holds and cite the file:lin
    scope in the baselines job; the concurrency groups (can `cancel-in-progress: true` on main cancel a
    run that nx-set-shas later needs as "last successful"?).
 
-You may run read-only commands and the local checks named above. Do not edit any file, do not push,
+You may run read-only commands and the local checks named above (prefix any command that starts a
+server with `BROWSER=none`; nothing may open a browser window on the user's screen). Do not edit any file, do not push,
 do not create or merge anything on GitHub, do not run `gh api` with a method other than GET.
 Work in /Users/ryanpederson/NewDev/CreatorStudioUI; use absolute paths.
+
+Known before you start: GitHub refused the ruleset on this private repository (HTTP 403, "Upgrade to
+GitHub Pro or make this repository public"), so `.github/ruleset-main.json` is kept for when it can be
+applied and the check is advisory; AGENTS.md and the ci.yml header state the merge procedure. Assess that
+procedure and its escape hatches rather than the ruleset's enforcement.
 
 Report in markdown: `## Findings` (each: severity Material/Minor, file:line or log line, what is
 wrong, the fix you would make), `## Clean passes` (what you checked, how, with the evidence), `## Verdict`
