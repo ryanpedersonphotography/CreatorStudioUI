@@ -54,6 +54,11 @@ describe('StudioMenus', () => {
     expect(screen.getByRole('menuitemcheckbox', { name: 'Navigation' })).toBe(items[0]);
     expect(items.map((el) => el.getAttribute('aria-checked'))).toEqual(['true', 'false', 'true', 'true']);
     expect(items.map((el) => el.getAttribute('aria-keyshortcuts'))).toEqual(['Control+Meta+B', 'Control+Meta+J', 'Control+Meta+I', 'Control+Meta+T']);
+    // Each item carries the cockpit glyph with its region's edge marked: filled while the region is shown, outlined while hidden.
+    const glyphs = items.map((el) => el.querySelector('svg[data-glyph="panel"]'));
+    expect(glyphs.map((g) => g?.getAttribute('data-side'))).toEqual(['left', 'bottom', 'right', 'top']);
+    expect(glyphs.map((g) => g?.getAttribute('aria-hidden'))).toEqual(['true', 'true', 'true', 'true']);
+    expect(glyphs.map((g) => g?.querySelector('[data-glyph="segment"]')?.getAttribute('fill'))).toEqual(['currentColor', 'none', 'currentColor', 'currentColor']);
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Context shelf' }));
     expect(regions.context.toggle).toHaveBeenCalledTimes(1);
   });
